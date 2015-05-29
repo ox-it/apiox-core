@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Authorisation error</h1>
+<p>Authorisation is not possible for the following reason:</p>
+
+<blockquote>{{ error|safe }}</blockquote>
+
+{% endblock %}

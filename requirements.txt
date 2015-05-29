@@ -1,0 +1,7 @@
+aiohttp
+aiohttp_jinja2
+Django
+gssapi
+-e git+https://github.com/ox-it/python-ldap.git@py3#egg=python-ldap
+psycopg2
+PyYAML

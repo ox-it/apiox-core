@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Authorise API access on your behalf</h1>
+<p class="authorize-salutation">Hi, {{ person.displayName.0 }}!</p>
+
+<p>The following application:</p>
+
+<div class="authorize-client-detail">
+  <h2>{{ client.title }}</h2>
+  <p>{{ client.description }}</p>
+</div>
+
+<p>&hellip; would like to act on your behalf{% if token.account.type != "user" %} <strong>in your role as {{ token.account.get_type_display() }}</strong>{% endif %} with the following permissions:</p>
+
+<ul class="authorize-scopes">
+{% for scope in scopes.values() %}
+<li class="authorize-scope-detail">
+  <h2>{{ scope.title }}</h2>
+  <p>{{ scope.description }}</p>
+</li>
+{% endfor %}
+</ul>
+
+<form method="post">
+<input type="hidden" name="client_id" value="{{ client.name }}">
+<input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% if state is not none %}<input type="hidden" name="state" value="{{ state }}">{% endif %}
+{% if scopes is not none %}<input type="hidden" name="scope" value="{{ scopes.keys()|join(" ") }}">{% endif %}
+<input type="submit" name="approve" value="Approve">
+<input type="submit" name="reject" value="Reject">
+</form>
+
+{% endblock %}

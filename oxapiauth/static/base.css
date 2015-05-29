@@ -1,0 +1,40 @@
+body {
+	font-family: sans-serif;
+	margin: 0;
+	background-color: #f3f1ee;
+}
+
+header {
+	display: block;
+	background-color: #122f53;
+	margin-top: 0.5em;
+	color: #f3f1ee;
+	padding: 0.5em;
+}
+
+@media (min-width : 800px) {
+.container {
+	margin: 0 auto;
+	width: 800px;
+}
+}
+
+.authorize-scopes {
+	padding-left: 0;
+}
+
+.authorize-scope-detail {
+	list-style: none;
+	border: 1px solid #ccc;
+	margin: 1em 0;
+	padding: 0.3em;
+}
+
+.authorize-scope-detail h2 {
+	font-size: 100%;
+	margin-top: 0;
+}
+
+.authorize-scope-detail p {
+	margin-bottom: 0;
+}
