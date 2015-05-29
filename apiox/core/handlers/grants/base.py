@@ -2,7 +2,7 @@ import json
 
 from aiohttp.web_exceptions import HTTPForbidden
 
-from oxapiauth.handlers.base import BaseHandler
+from ..base import BaseHandler
 
 class BaseGrantHandler(BaseHandler):
     def require_oauth2_client(self, request):

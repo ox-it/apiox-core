@@ -38,6 +38,9 @@ class Principal(models.Model):
     allow_password_authentication = models.BooleanField(default=False)
     is_oauth2_client = models.BooleanField(default=False)
 
+    class Meta:
+        db_table = 'apiox_principal'
+
     def is_password_valid(self, password):
         return self.allow_password_authentication
     
@@ -100,6 +103,9 @@ class Token(models.Model):
     refresh_at = models.DateTimeField()
     expire_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        db_table = 'apiox_token'
+
     def as_json(self):
         data = {'scopes': sorted(self.scopes),
                 'expires_in': round((self.refresh_at - datetime.datetime.utcnow()).total_seconds()),
@@ -142,6 +148,9 @@ class AuthorizationCode(models.Model):
     expire_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow() + datetime.timedelta(0, 600))
     token_expire_at = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        db_table = 'apiox_authorization_code'
+
     def convert_to_access_token(self):
         self.delete()
         return Token.create_access_token(client=self.client,
@@ -154,3 +163,7 @@ class ScopeGrant(models.Model):
     token = models.ForeignKey(Token)
     scope = models.CharField(max_length=256)
     expire_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'apiox_scope_grant'
+
