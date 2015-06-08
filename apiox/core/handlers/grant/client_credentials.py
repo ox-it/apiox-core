@@ -3,7 +3,7 @@ import http.client
 import json
 
 from ... import models
-from aiohttp.web import Response
+from ...response import JSONResponse
 
 from .base import BaseGrantHandler
 
@@ -17,5 +17,4 @@ class ClientCredentialsGrantHandler(BaseGrantHandler):
                                                  scopes=self.determine_scopes(request),
                                                  expires=True,
                                                  refreshable=False)
-        return Response(body=json.dumps(token.as_json(), indent=2).encode(),
-                        status=http.client.OK)
+        return JSONResponse(body=token.as_json())

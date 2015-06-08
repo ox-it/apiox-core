@@ -14,18 +14,18 @@ _local = threading.local()
 class NoSuchLDAPObject(Exception):
     pass
 
-def _get_ldap_connection():
+def _get_ldap_connection(app):
     auth = ldap.sasl.gssapi("")
-    conn = ldap.initialize("ldap://ldap.oak.ox.ac.uk:389")
+    conn = ldap.initialize(app['ldap-url'])
     conn.start_tls_s()
     conn.sasl_interactive_bind_s("", auth)
     return conn
 
 def _with_ldap_connection(func):
     @functools.wraps(func)
-    def f(*args, **kwargs):
+    def f(app, *args, **kwargs):
         if not hasattr(_local, 'conn'):
-            _local.conn = _get_ldap_connection()
+            _local.conn = _get_ldap_connection(app)
         try:
             return func(_local.conn, *args, **kwargs)
         except ldap.SERVER_DOWN: # Try again, once

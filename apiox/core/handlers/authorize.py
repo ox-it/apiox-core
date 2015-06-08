@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import http.client
 import json
@@ -13,10 +14,11 @@ from ..token import generate_token
 from .base import BaseHandler
 
 class AuthorizeHandler(BaseHandler):
-    def validate(self, request):
+    @asyncio.coroutine
+    def common(self, request):
+        yield from self.require_authentication(request)
         data = request.GET if request.method == 'GET' else request.POST
-        print(data)
-        
+
         if not request.token.user:
             self.error_response(HTTPForbidden, request,
                                 "There is no user associated with the account you logged in with.")
@@ -45,15 +47,16 @@ class AuthorizeHandler(BaseHandler):
             scopes = collections.OrderedDict((s, request.app['scopes'][s]) for s in scopes)
         except KeyError as e:
             self.error_response(HTTPBadRequest, request,
-                                'Invalid scope: {}'.format(e.args[1]))
+                                'Invalid scope: {}'.format(e.args[0]))
         
         return {'client': client,
                 'redirect_uri': redirect_uri,
                 'state': data.get('state'),
                 'scopes': scopes}
-        
+
+    @asyncio.coroutine
     def get(self, request):
-        context = self.validate(request)
+        context = yield from self.common(request)
         
         csrf_token = request.cookies.get('csrf-token') or generate_token()
         
@@ -73,9 +76,8 @@ class AuthorizeHandler(BaseHandler):
 
     def post(self, request):
         yield from request.post()
-        context = self.validate(request)
-        print(context)
-        
+        context = yield from self.common(request)
+
         if 'approve' in request.POST:
             authorization_code = models.AuthorizationCode.objects.create(code=generate_token(),
                                                                          account=request.token.account,

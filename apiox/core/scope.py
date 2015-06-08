@@ -1,24 +1,15 @@
-import os
-import threading
-import yaml
+from collections import namedtuple
 
-_local = threading.local()
+fields = ('name',
+          'description',
+          'available_to_user',
+          'available_to_client',
+          'require_principal_type')
 
-class Scopes(object):
-    def __init__(self, filename):
-        self.filename = filename
-
-    @property
-    def _data(self):
-        mtime = os.stat(self.filename).st_mtime
-        if mtime > getattr(_local, 'mtime', 0):
-            with open(self.filename, 'rb') as f:
-                _local.data = yaml.load(f)
-            _local.mtime = mtime
-        return _local.data
-
-    def __iter__(self):
-        return iter(self._data)
-    
-    def __getitem__(self, key):
-        return self._data[key]
+class Scope(namedtuple('ScopeBase', fields)):
+    def __new__(cls, name, description,
+                available_to_user=False,
+                available_to_client=False,
+                require_principal_type=None):
+        _locals = locals()
+        return super().__new__(cls, **{n: _locals[n] for n in fields})

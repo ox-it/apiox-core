@@ -1,11 +1,8 @@
 import asyncio
 import datetime
-import http.client
-import json
-
 
 from ... import models
-from aiohttp.web import Response
+from ...response import JSONResponse
 
 from .base import BaseGrantHandler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
@@ -40,5 +37,4 @@ class AuthorizationCodeGrantHandler(BaseGrantHandler):
                                    'error_description': 'Incorrect `redirect_uri` specified'})
 
         token = code.convert_to_access_token()
-        return Response(body=json.dumps(token.as_json(), indent=2).encode(),
-                        status=http.client.OK)
+        return JSONResponse(body=token.as_json())

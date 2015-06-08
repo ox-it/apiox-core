@@ -50,15 +50,16 @@ class Principal(models.Model):
             scopes.add('/oauth2/client')
         if self.type in {'user', 'itss', 'root', 'admin'}:
             scopes.add('/oauth2/user')
+            scopes.add('/hello-world')
         return Token(client=self,
                      account=self,
                      user=self.user,
                      scopes=list(scopes))
 
     @classmethod
-    def lookup(cls, name):
+    def lookup(cls, app, name):
         try:
-            data = get_principal(name)
+            data = get_principal(app, name)
         except NoSuchLDAPObject as e:
             raise Principal.DoesNotExist from e
         user = parse_person_dn(data['oakPerson'][0]) if 'oakPerson' in data else None
@@ -68,14 +69,14 @@ class Principal(models.Model):
             principal, created = Principal(name=name), True
         if principal.user != user or created:
             principal.user = user
-            principal.type = principal.determine_principal_type()
+            principal.type = principal.determine_principal_type(app)
             principal.save()
         return principal
 
-    def determine_principal_type(self):
+    def determine_principal_type(self, app):
         name = self.name.split('/')
         first, last = name[0], name[1] if len(name) > 1 else None
-        user = get_person(self.user) if self.user else None
+        user = get_person(app, self.user) if self.user else None
         if last and '.' in last:
             return 'service'
         elif not user:
@@ -117,24 +118,35 @@ class Token(models.Model):
         
         return data
 
+    def set_refresh(self):
+        self.refresh_at = datetime.datetime.utcnow() + datetime.timedelta(0, TOKEN_LIFETIME)
+        if self.expire_at and self.refresh_at > self.expire_at:
+            self.refresh_at = self.expire_at
+            self.refresh_token = None
+        else:
+            self.refresh_token = generate_token()
+
+    def refresh(self, scopes=None):
+        if scopes:
+            self.scopes = set(self.scopes) & set(scopes)
+        self.access_token = generate_token()
+        self.set_refresh()
+        self.save()
+
     @classmethod
     def create_access_token(cls, client, account, user, scopes, expires=None, refreshable=True):
-        refresh_at = datetime.datetime.utcnow() + datetime.timedelta(0, 600)
         if expires is True:
             expires = TOKEN_LIFETIME
         if isinstance(expires, int):
             expires = datetime.datetime.utcnow() + datetime.timedelta(0, expires)
-        if expires and expires < refresh_at:
-            refresh_at = expires
-            refreshable = False
-        return cls.objects.create(access_token=generate_token(),
-                                  refresh_token=generate_token() if refreshable else None,
-                                  client=client,
-                                  account=account,
-                                  user=user,
-                                  scopes=list(scopes),
-                                  refresh_at=refresh_at,
-                                  expire_at=expires)
+        token = cls(access_token=generate_token(),
+                    client=client,
+                    account=account,
+                    user=user,
+                    scopes=list(scopes),
+                    expire_at=expires)
+        token.set_refresh()
+        return token
 
 class AuthorizationCode(models.Model):
     code = models.CharField(max_length=TOKEN_LENGTH, blank=True)

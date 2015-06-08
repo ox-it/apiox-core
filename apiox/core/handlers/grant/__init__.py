@@ -1,2 +1,3 @@
 from .client_credentials import ClientCredentialsGrantHandler
 from .authorization_code import AuthorizationCodeGrantHandler
+from .refresh_token import RefreshTokenGrantHandler

@@ -10,5 +10,5 @@ DATABASES = {
 }
 
 INSTALLED_APPS = (
-    'oxapiauth',
+    'apiox.core',
 )

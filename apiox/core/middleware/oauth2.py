@@ -5,11 +5,11 @@ import json
 from aiohttp.web_exceptions import HTTPUnauthorized
 
 from ..models import Token
-
-authentication_scheme = 'Bearer realm="api.ox.ac.uk"'
+from ..response import JSONResponse
 
 @asyncio.coroutine
 def oauth2_middleware(app, handler):
+    authentication_scheme = 'Bearer realm="{}"'.format(app['auth-realm'])
     if not hasattr(app, 'authentication_schemes'):
         app.authentication_schemes = set()
     app.authentication_schemes.add(authentication_scheme)
@@ -27,17 +27,17 @@ def oauth2_middleware(app, handler):
             except Token.DoesNotExist:
                 authenticate_header = authentication_scheme \
                     + ', error="invalid_token", error_description="No such token"'
-                raise HTTPUnauthorized(body=json.dumps({'error': 'invalid_token',
-                                                        'error_description': 'No such token'}).encode(),
-                                       headers={'WWW-Authenticate': authenticate_header,
-                                                'Content-Type': 'application/json'})
+                raise JSONResponse(base=HTTPUnauthorized,
+                                   body={'error': 'invalid_token',
+                                         'error_description': 'No such token'},
+                                   headers={'WWW-Authenticate': authenticate_header})
             if token.refresh_at and token.refresh_at <= datetime.datetime.utcnow():
                 authenticate_header = authentication_scheme \
                     + ', error="invalid_token", error_description="Token expired"'
-                raise HTTPUnauthorized(body=json.dumps({'error': 'invalid_token',
-                                                        'error_description': 'Token expired'}).encode(),
-                                       headers={'WWW-Authenticate': authenticate_header,
-                                                'Content-Type': 'application/json'})
+                raise JSONResponse(base=HTTPUnauthorized,
+                                   body={'error': 'invalid_token',
+                                         'error_description': 'Token expired'},
+                                   headers={'WWW-Authenticate': authenticate_header})
             request.token = token
         return (yield from handler(request))
     return middleware
