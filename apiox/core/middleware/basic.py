@@ -19,7 +19,7 @@ def basic_auth_middleware(app, handler):
                 username, password = base64.b64decode(request.headers['Authorization'][6:]).decode('utf-8').split(':', 1)
                 principal = Principal.lookup(app, username)
                 if principal.is_password_valid(password):
-                    request.token = principal.get_token_as_self()
+                    request.token = principal.get_token_as_self(request.app)
             except (ValueError, IndexError, Principal.DoesNotExist):
                 raise HTTPUnauthorized(headers={'WWW-Authenticate': authentication_scheme})
         return (yield from handler(request))

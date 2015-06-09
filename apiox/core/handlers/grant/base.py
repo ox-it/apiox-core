@@ -18,7 +18,7 @@ class BaseGrantHandler(BaseHandler):
             scopes &= set(request.POST['scopes'].split())
         else:
             scopes.discard('/oauth2/client')
-            scopes.discard('/oauth2/authorize')
+            scopes.discard('/oauth2/user')
         return scopes
 
     def oauth2_exception(self, exception_class, request, body):

@@ -44,13 +44,12 @@ class Principal(models.Model):
     def is_password_valid(self, password):
         return self.allow_password_authentication
     
-    def get_token_as_self(self):
+    def get_token_as_self(self, app):
         scopes = set()
         if self.is_oauth2_client:
-            scopes.add('/oauth2/client')
+            scopes.update(s.name for s in app['scopes'].values() if s.available_to_client)
         if self.type in {'user', 'itss', 'root', 'admin'}:
-            scopes.add('/oauth2/user')
-            scopes.add('/hello-world')
+            scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
         return Token(client=self,
                      account=self,
                      user=self.user,
