@@ -1,8 +1,7 @@
 import asyncio
 import collections
-import http.client
-import json
 import urllib.parse
+from xml.sax.saxutils import escape
 
 from aiohttp_jinja2 import render_template, render_string, APP_KEY
 
@@ -47,7 +46,14 @@ class AuthorizeHandler(BaseHandler):
             scopes = collections.OrderedDict((s, request.app['scopes'][s]) for s in scopes)
         except KeyError as e:
             self.error_response(HTTPBadRequest, request,
-                                'Invalid scope: {}'.format(e.args[0]))
+                                'Invalid scope: <tt>{}</tt>'.format(escape(e.args[0])))
+        disallowed_scopes = [scope for scope in scopes.values()
+                             if scope.name not in client.allowed_scopes
+                                and not scope.requestable_by_all_clients]
+        if disallowed_scopes:
+            self.error_response(HTTPBadRequest, request,
+                                "The client requested scopes it wasn't entitled to ({}).".format(
+                                    ', '.join('<tt>{}</tt>'.format(escape(scope.name)) for scope in disallowed_scopes)))
         
         return {'client': client,
                 'redirect_uri': redirect_uri,
