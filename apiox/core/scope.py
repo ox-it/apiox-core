@@ -6,7 +6,8 @@ fields = ('name',
           'available_to_user',
           'available_to_client',
           'requestable_by_all_clients',
-          'require_principal_type')
+          'require_principal_type',
+          'lifetime')
 
 class Scopes(OrderedDict):
     def add(self, scope=None, **kwargs):
@@ -19,6 +20,7 @@ class Scope(namedtuple('ScopeBase', fields)):
                 available_to_user=False,
                 available_to_client=False,
                 requestable_by_all_clients=False,
-                require_principal_type=None):
+                require_principal_type=None,
+                lifetime=None):
         _locals = locals()
         return super().__new__(cls, **{n: _locals[n] for n in fields})

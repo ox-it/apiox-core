@@ -100,6 +100,7 @@ class Token(models.Model):
 
     scopes = ArrayField(models.CharField(max_length=256), default=[])
 
+    granted_at = models.DateTimeField()
     refresh_at = models.DateTimeField()
     expire_at = models.DateTimeField(null=True, blank=True)
 
@@ -119,6 +120,17 @@ class Token(models.Model):
 
     def set_refresh(self, app):
         self.refresh_at = datetime.datetime.utcnow() + datetime.timedelta(0, TOKEN_LIFETIME)
+
+        # Expire scopes that have limited lifetimes
+        alive_for = (datetime.datetime.utcnow() - self.granted_at).total_seconds()
+        scopes = [app['scopes'][n] for n in self.scopes]
+        scopes = [scope for scope in scopes if not (scope.lifetime and scope.lifetime < alive_for)]
+        lifetimes = filter(None, (scope.lifetime for scope in scopes))
+        if lifetimes:
+            self.refresh_at = min(self.refresh_at,
+                                  datetime.datetime.utcnow() + datetime.timedelta(seconds=min(lifetimes)))
+        self.scopes = [scope.name for scope in scopes]
+
         if self.expire_at and self.refresh_at > self.expire_at:
             self.refresh_at = self.expire_at
             self.refresh_token = None
@@ -127,7 +139,7 @@ class Token(models.Model):
 
     def refresh(self, app, scopes=None):
         if scopes:
-            self.scopes = set(self.scopes) & set(scopes)
+            self.scopes = list(set(self.scopes) & set(scopes))
         self.access_token = generate_token()
         self.set_refresh(app)
         self.save()
@@ -143,6 +155,7 @@ class Token(models.Model):
                     account=account,
                     user=user,
                     scopes=list(scopes),
+                    granted_at=datetime.datetime.utcnow(),
                     expire_at=expires)
         token.set_refresh()
         return token
@@ -156,6 +169,7 @@ class AuthorizationCode(models.Model):
     scopes = ArrayField(models.CharField(max_length=256), default=[])
     redirect_uri = models.URLField(null=True, blank=True)
 
+    granted_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow())
     expire_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow() + datetime.timedelta(0, 600))
     token_expire_at = models.DateTimeField(null=True, blank=True)
 
@@ -168,6 +182,7 @@ class AuthorizationCode(models.Model):
                                          account=self.account,
                                          user=self.user,
                                          scopes=self.scopes,
+                                         granted_at=self.granted_at,
                                          expires=self.token_expire_at)
 
 class ScopeGrant(models.Model):
