@@ -1,4 +1,3 @@
-
 from aiohttp.web_exceptions import HTTPForbidden
 
 from ..base import BaseHandler

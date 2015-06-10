@@ -66,7 +66,7 @@ class AuthorizeHandler(BaseHandler):
         
         csrf_token = request.cookies.get('csrf-token') or generate_token()
         
-        context.update({'person': get_person(request.token.user),
+        context.update({'person': get_person(request.app, request.token.user),
                         'token': request.token,
                         'csrf_token': csrf_token})
         

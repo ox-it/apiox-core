@@ -117,7 +117,7 @@ class Token(models.Model):
         
         return data
 
-    def set_refresh(self):
+    def set_refresh(self, app):
         self.refresh_at = datetime.datetime.utcnow() + datetime.timedelta(0, TOKEN_LIFETIME)
         if self.expire_at and self.refresh_at > self.expire_at:
             self.refresh_at = self.expire_at
@@ -125,11 +125,11 @@ class Token(models.Model):
         else:
             self.refresh_token = generate_token()
 
-    def refresh(self, scopes=None):
+    def refresh(self, app, scopes=None):
         if scopes:
             self.scopes = set(self.scopes) & set(scopes)
         self.access_token = generate_token()
-        self.set_refresh()
+        self.set_refresh(app)
         self.save()
 
     @classmethod
