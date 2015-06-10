@@ -158,6 +158,7 @@ class Token(models.Model):
                     granted_at=datetime.datetime.utcnow(),
                     expire_at=expires)
         token.set_refresh()
+        token.save()
         return token
 
 class AuthorizationCode(models.Model):
