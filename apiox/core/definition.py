@@ -38,4 +38,4 @@ def hook_in(app):
     app['scopes'].add(name='/oauth2/user',
                       title='OAuth2 user',
                       description="Allows a user to grant access to a client to act on their behalf.",
-                      available_to_client=True)
+                      available_to_user=True)
