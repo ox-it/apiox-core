@@ -10,24 +10,29 @@ from .base import BaseHandler
 from urllib.parse import urljoin
 
 class ReverseProxyHandler(BaseHandler):
-    discard_headers = {'Host',
-                       'Authorization',
-                       'X-ApiOx-Client',
-                       'X-ApiOx-Scopes',
-                       'X-ApiOx-Account',
-                       'X-ApiOx-User',
-                       'X-Forwarded-For'}
+    discard_request_headers = {'Host',
+                               'Authorization',
+                               'X-ApiOx-Client',
+                               'X-ApiOx-Scopes',
+                               'X-ApiOx-Account',
+                               'X-ApiOx-User',
+                               'X-Forwarded-For',
+                               'TE',
+                               'Accept-Encoding'}
+    discard_response_headers = {'Transfer-Encoding',
+                                'Content-Encoding',
+                                'Server'}
 
     def __init__(self, target):
         self.target = target
 
     @asyncio.coroutine
     def __call__(self, request):
-        headers = aiohttp.multidict.CIMultiDict(request.headers)
-        for header in self.discard_headers:
+        headers = request.headers.copy()
+        for header in self.discard_request_headers:
             headers.pop(header.upper(), None)
         
-        if request.token:
+        if getattr(request, 'token', None):
             headers['X-ApiOx-Client'] = request.token.client_id
             headers['X-ApiOx-Scopes'] = ' '.join(request.token.scopes)
             headers['X-ApiOx-Account'] = request.token.account_id
@@ -44,6 +49,7 @@ class ReverseProxyHandler(BaseHandler):
             content = None
         upstream_response = yield from aiohttp.request(method=request.method,
                                                        params=request.GET,
+                                                       allow_redirects=False,
                                                        url=urljoin(self.target, request.match_info['path']),
                                                        data=content,
                                                        headers=headers)
@@ -51,14 +57,18 @@ class ReverseProxyHandler(BaseHandler):
         if upstream_response.status == http.client.UNAUTHORIZED:
             return (yield from self.require_authentication(request))
         
+        headers = upstream_response.headers.copy()
+        for header in self.discard_response_headers:
+            headers.pop(header.upper(), None)
         response = aiohttp.web.StreamResponse(status=upstream_response.status,
-                                              headers=upstream_response.headers)
-        response.start(request)
+                                              headers=headers)
+        yield from response.start(request)
         while True:
             chunk = yield from upstream_response.content.read(4096)
             if not chunk:
                 break
             yield from response.write(chunk)
-        response.write_eof()
+        yield from response.write_eof()
+        upstream_response.close()
 
         return response
