@@ -23,11 +23,13 @@ def hook_in(app):
     app.router.add_route('GET', '/', handlers.IndexHandler(),
                          name='index')
     app.router.add_route('GET', '/authorize',
-                         handlers.AuthorizeHandler().get)
+                         handlers.AuthorizeHandler().get,
+                         name='oauth2:authorize')
     app.router.add_route('POST', '/authorize',
                          handlers.AuthorizeHandler().post)
     app.router.add_route('POST', '/token',
-                         handlers.TokenRequestHandler())
+                         handlers.TokenRequestHandler(),
+                         name='oauth2:token')
 
     app.router.add_static('/static', os.path.join(os.path.dirname(__file__), 'static'))
 

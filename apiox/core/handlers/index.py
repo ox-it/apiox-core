@@ -10,6 +10,8 @@ class IndexHandler(BaseHandler):
             'version': __version__,
             '_links': {
                 'self': {'href': request.app.router['index'].url()},
+                'oauth2:token': {'href': request.app.router['oauth2:token'].url()},
+                'oauth2:authorize': {'href': request.app.router['oauth2:authorize'].url()},
             },
         }
 
