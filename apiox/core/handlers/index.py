@@ -17,10 +17,8 @@ class IndexHandler(BaseHandler):
 
         for label, definition in request.app['definitions'].items():
             if label:
-                body['_links']['app:' + label] = {
-                    'href': request.app.router[label + ':index'].url(),
-                    'title': definition['title'],
-                    'version': definition['version'],
-                } 
+                link = definition.copy()
+                link['href'] = request.app.router[label + ':index'].url()
+                body['_links']['app:' + label] = link
         
         return JSONResponse(body=body)
