@@ -6,6 +6,7 @@ from ...response import JSONResponse
 
 from .base import BaseGrantHandler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
+from apiox.core.token import hash_token
 
 class RefreshTokenGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
@@ -20,7 +21,8 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                    'error_description': "Missing `refresh_token` parameter"})
         
         try:
-            token = models.Token.objects.get(refresh_token=refresh_token)
+            refresh_token_hash = hash_token(request.app, refresh_token)
+            token = models.Token.objects.get(refresh_token_hash=refresh_token_hash)
         except models.Token.DoesNotExist:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
@@ -31,5 +33,7 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                   {'error': 'access_denied',
                                    'error_description': 'The token has expired'})
 
-        token.refresh(request.POST.get('scope', '').split())
-        return JSONResponse(body=token.as_json())
+        access_token, refresh_token = token.refresh(app=request.app,
+                                                    scopes=request.POST.get('scope', '').split())
+        return JSONResponse(body=token.as_json(access_token=access_token,
+                                               refresh_token=refresh_token))

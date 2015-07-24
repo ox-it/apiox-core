@@ -9,7 +9,7 @@ from aiohttp.web_exceptions import HTTPBadRequest, HTTPFound, HTTPForbidden
 
 from ..ldap import get_person
 from .. import models
-from ..token import generate_token
+from ..token import generate_token, hash_token
 from .base import BaseHandler
 
 class AuthorizeHandler(BaseHandler):
@@ -85,13 +85,14 @@ class AuthorizeHandler(BaseHandler):
         context = yield from self.common(request)
 
         if 'approve' in request.POST:
-            authorization_code = models.AuthorizationCode.objects.create(code=generate_token(),
-                                                                         account=request.token.account,
-                                                                         client=context['client'],
-                                                                         user=request.token.user,
-                                                                         scopes=list(context['scopes'].keys()),
-                                                                         redirect_uri=context['redirect_uri'])
-            params = {'code': authorization_code.code}
+            code = generate_token()
+            models.AuthorizationCode.objects.create(code_hash=hash_token(request.app, code),
+                                                    account=request.token.account,
+                                                    client=context['client'],
+                                                    user=request.token.user,
+                                                    scopes=list(context['scopes'].keys()),
+                                                    redirect_uri=context['redirect_uri'])
+            params = {'code': code}
             if context['state']:
                 params['state'] = context['state']
             

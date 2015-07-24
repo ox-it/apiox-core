@@ -6,6 +6,7 @@ from ...response import JSONResponse
 
 from .base import BaseGrantHandler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
+from apiox.core.token import hash_token
 
 class AuthorizationCodeGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
@@ -20,7 +21,8 @@ class AuthorizationCodeGrantHandler(BaseGrantHandler):
                                    'error_description': "Missing `code` parameter"})
         
         try:
-            code = models.AuthorizationCode.objects.get(code=code)
+            code_hash = hash_token(request.app, code)
+            code = models.AuthorizationCode.objects.get(code_hash=code_hash)
         except models.AuthorizationCode.DoesNotExist:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
@@ -36,5 +38,6 @@ class AuthorizationCodeGrantHandler(BaseGrantHandler):
                                   {'error': 'access_denied',
                                    'error_description': 'Incorrect `redirect_uri` specified'})
 
-        token = code.convert_to_access_token()
-        return JSONResponse(body=token.as_json())
+        token, (access_token, refresh_token) = code.convert_to_access_token(app=request.app)
+        return JSONResponse(body=token.as_json(access_token=access_token,
+                                               refresh_token=refresh_token))

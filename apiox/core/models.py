@@ -6,7 +6,8 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 from .ldap import get_principal, get_person, NoSuchLDAPObject, parse_person_dn, parse_principal_dn
-from .token import generate_token, TOKEN_LENGTH, TOKEN_LIFETIME
+from .scope import SCOPE_GRANT_REVIEW, SCOPE_GRANT_EXPIRE
+from .token import generate_token, hash_token, TOKEN_LENGTH, TOKEN_HASH_LENGTH, TOKEN_LIFETIME
 
 PRINCIPAL_TYPE_CHOICES = (
     ('user', 'User'),
@@ -91,8 +92,9 @@ class Principal(models.Model):
             
 
 class Token(models.Model):
-    access_token = models.CharField(max_length=TOKEN_LENGTH)
-    refresh_token = models.CharField(max_length=TOKEN_LENGTH, blank=True)
+    id = models.CharField(max_length=TOKEN_LENGTH, primary_key=True, default=generate_token)
+    access_token_hash = models.CharField(max_length=TOKEN_HASH_LENGTH)
+    refresh_token_hash = models.CharField(max_length=TOKEN_HASH_LENGTH, blank=True)
 
     client = models.ForeignKey(Principal, related_name='client_tokens')
     account = models.ForeignKey(Principal, related_name='account_tokens')
@@ -107,14 +109,15 @@ class Token(models.Model):
     class Meta:
         db_table = 'apiox_token'
 
-    def as_json(self):
+    def as_json(self, *, access_token=None, refresh_token=None):
         data = {'scopes': sorted(self.scopes),
                 'expires_in': round((self.refresh_at - datetime.datetime.utcnow()).total_seconds()),
-                'token_type': 'bearer'}
-        if self.access_token:
-            data['access_token'] = self.access_token
-        if self.refresh_token:
-            data['refresh_token'] = self.refresh_token
+                'token_type': 'bearer',
+                'token_id': self.id}
+        if access_token:
+            data['access_token'] = access_token
+        if refresh_token:
+            data['refresh_token'] = refresh_token
         
         return data
 
@@ -125,7 +128,7 @@ class Token(models.Model):
         alive_for = (datetime.datetime.utcnow() - self.granted_at).total_seconds()
         scopes = [app['scopes'][n] for n in self.scopes]
         scopes = [scope for scope in scopes if not (scope.lifetime and scope.lifetime < alive_for)]
-        lifetimes = filter(None, (scope.lifetime for scope in scopes))
+        lifetimes = list(filter(None, (scope.lifetime for scope in scopes)))
         if lifetimes:
             self.refresh_at = min(self.refresh_at,
                                   datetime.datetime.utcnow() + datetime.timedelta(seconds=min(lifetimes)))
@@ -133,36 +136,41 @@ class Token(models.Model):
 
         if self.expire_at and self.refresh_at > self.expire_at:
             self.refresh_at = self.expire_at
-            self.refresh_token = None
+            refresh_token = None
         else:
-            self.refresh_token = generate_token()
+            refresh_token = generate_token()
+        self.refresh_token_hash = hash_token(app, refresh_token)
+        return refresh_token
 
-    def refresh(self, app, scopes=None):
+    def refresh(self, *, app, scopes=None):
         if scopes:
             self.scopes = list(set(self.scopes) & set(scopes))
-        self.access_token = generate_token()
-        self.set_refresh(app)
+        access_token = generate_token()
+        self.access_token_hash = hash_token(app, access_token)
+        refresh_token = self.set_refresh(app)
         self.save()
+        return access_token, refresh_token
 
     @classmethod
-    def create_access_token(cls, client, account, user, scopes, expires=None, refreshable=True):
+    def create_access_token(cls, *, app, granted_at, client, account, user, scopes, expires=None, refreshable=True):
         if expires is True:
             expires = TOKEN_LIFETIME
         if isinstance(expires, int):
             expires = datetime.datetime.utcnow() + datetime.timedelta(0, expires)
-        token = cls(access_token=generate_token(),
+        access_token = generate_token()
+        token = cls(access_token_hash=hash_token(app, access_token),
                     client=client,
                     account=account,
                     user=user,
                     scopes=list(scopes),
-                    granted_at=datetime.datetime.utcnow(),
+                    granted_at=granted_at,
                     expire_at=expires)
-        token.set_refresh()
+        refresh_token = token.set_refresh(app)
         token.save()
-        return token
+        return token, (access_token, refresh_token)
 
 class AuthorizationCode(models.Model):
-    code = models.CharField(max_length=TOKEN_LENGTH, blank=True)
+    code_hash = models.CharField(max_length=TOKEN_HASH_LENGTH, blank=True)
     
     client = models.ForeignKey(Principal, related_name='client_codes')
     account = models.ForeignKey(Principal, related_name='account_codes')
@@ -177,9 +185,10 @@ class AuthorizationCode(models.Model):
     class Meta:
         db_table = 'apiox_authorization_code'
 
-    def convert_to_access_token(self):
+    def convert_to_access_token(self, app):
         self.delete()
-        return Token.create_access_token(client=self.client,
+        return Token.create_access_token(app=app,
+                                         client=self.client,
                                          account=self.account,
                                          user=self.user,
                                          scopes=self.scopes,
