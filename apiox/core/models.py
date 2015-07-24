@@ -30,7 +30,6 @@ class Principal(models.Model):
     administrators = ArrayField(UserField(), default=[])
     title = models.CharField(max_length=256, blank=True)
     description = models.TextField(blank=True)
-    allowed_scopes = ArrayField(models.CharField(max_length=128), default=[])
     redirect_uris = ArrayField(models.URLField(), default=[])
 
     contact_email = models.EmailField()
@@ -43,18 +42,26 @@ class Principal(models.Model):
         db_table = 'apiox_principal'
 
     def is_password_valid(self, password):
-        return self.allow_password_authentication
-    
+        if not self.allow_password_authentication:
+            return False
+        return True
+
     def get_token_as_self(self, app):
         scopes = set()
         if self.is_oauth2_client:
             scopes.update(s.name for s in app['scopes'].values() if s.available_to_client)
-        if self.type in {'user', 'itss', 'root', 'admin'}:
+        if self.is_person:
             scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
+        for scope_grant in self.scopegrant_set.all():
+            scopes.update(s for s in scope_grant.scopes if not app['scopes'][s].personal)
         return Token(client=self,
                      account=self,
                      user=self.user,
                      scopes=list(scopes))
+
+    @property
+    def is_person(self):
+        return self.type in {'user', 'itss', 'root', 'admin'}
 
     @classmethod
     def lookup(cls, app, name):
@@ -196,10 +203,28 @@ class AuthorizationCode(models.Model):
                                          expires=self.token_expire_at)
 
 class ScopeGrant(models.Model):
-    token = models.ForeignKey(Token)
-    scope = models.CharField(max_length=256)
-    expire_at = models.DateTimeField(null=True, blank=True)
+    principal = models.ForeignKey(Principal)
+    scopes = ArrayField(models.CharField(max_length=256), default=[])
+    target_group = models.CharField(max_length=32, blank=True)
+    implicit = models.BooleanField(default=None,
+                                   help_text="If True, a client doesn't need to ask the user. "
+                                             "If False, they need to perform an OAuth2 authorization before they can be granted a token with any of these scopes.")
+    granted_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow())
+    review_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow() + SCOPE_GRANT_REVIEW)
+    expire_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow() + SCOPE_GRANT_EXPIRE)
+    justification = models.TextField()
+    notes = models.TextField(blank=True)
+    responsible_user = UserField()
 
     class Meta:
         db_table = 'apiox_scope_grant'
 
+class ScopeGrantRequest(models.Model):
+    principal = models.ForeignKey(Principal)
+    scopes = ArrayField(models.CharField(max_length=256), default=[])
+    target_group = models.CharField(max_length=2048)
+    implicit = models.BooleanField(default=None,
+                                   help_text="If True, a client doesn't need to ask the user. "
+                                             "If False, they need to perform an OAuth2 authorization before they can be granted a token with any of these scopes.")
+    justification = models.TextField()
+    
