@@ -28,6 +28,7 @@ class Scope(namedtuple('ScopeBase', fields)):
                 available_to_client=False,
                 requestable_by_all_clients=False,
                 require_principal_type=None,
+                personal=False,
                 lifetime=None,
                 end_user_policy=None):
         _locals = locals()
