@@ -62,7 +62,7 @@ class ReverseProxyHandler(BaseHandler):
             headers.pop(header.upper(), None)
         response = aiohttp.web.StreamResponse(status=upstream_response.status,
                                               headers=headers)
-        yield from response.start(request)
+        response.start(request)
         while True:
             chunk = yield from upstream_response.content.read(4096)
             if not chunk:

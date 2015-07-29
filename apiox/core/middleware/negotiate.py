@@ -38,7 +38,6 @@ def negotiate_auth_middleware(app, handler):
         return (yield from handler(request))
     return middleware
 
-@asyncio.coroutine
 def add_negotiate_token(request, response):
     if hasattr(request, 'negotiate_token'):
         response.headers['WWW-Authenticate'] = 'Negotiate {}'.format(request.negotiate_token)
