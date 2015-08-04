@@ -15,6 +15,7 @@ class ReverseProxyHandler(BaseHandler):
                                'X-ApiOx-Client',
                                'X-ApiOx-Scopes',
                                'X-ApiOx-Account',
+                               'X-ApiOx-Account-Type',
                                'X-ApiOx-User',
                                'X-Forwarded-For',
                                'TE',
