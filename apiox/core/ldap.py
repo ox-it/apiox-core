@@ -2,12 +2,11 @@ import functools
 import re
 import threading
 
-import ldap
-import ldap.sasl
+import ldap3
 
-PRINCIPAL_NAME_RE = re.compile(r'^[a-z\d\-]+(?:/[a-z\d\-.]+)?$')
+PRINCIPAL_NAME_RE = re.compile(r'^[A-Za-z0-9\-]+(?:/[A-Za-z0-9\-.]+)?$')
 PERSON_DN_RE = re.compile(r'^oakPrimaryPersonID=(\d+),ou=people,dc=oak,dc=ox,dc=ac,dc=uk$')
-PRINCIPAL_DN_RE = re.compile(r'^krbPrincipalName=([\da-z_/]+)@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk$')
+PRINCIPAL_DN_RE = re.compile(r'^krbPrincipalName=([0-9a-zA-Z_/]+)@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk$')
 
 _local = threading.local()
 
@@ -15,10 +14,11 @@ class NoSuchLDAPObject(Exception):
     pass
 
 def _get_ldap_connection(app):
-    auth = ldap.sasl.gssapi("")
-    conn = ldap.initialize(app['ldap-url'])
-    conn.start_tls_s()
-    conn.sasl_interactive_bind_s("", auth)
+    conn = ldap3.Connection(app['ldap-url'],
+                            authentication=ldap3.SASL,
+                            sasl_mechanism='GSSAPI',
+                            user=app['ldap-user'])
+    conn.bind()
     return conn
 
 def _with_ldap_connection(func):
@@ -28,26 +28,20 @@ def _with_ldap_connection(func):
             _local.conn = _get_ldap_connection(app)
         try:
             return func(_local.conn, *args, **kwargs)
-        except ldap.SERVER_DOWN: # Try again, once
-            _local.conn = _get_ldap_connection()
+        except Exception: # Try again, once
+            _local.conn = _get_ldap_connection(app)
             return func(_local.conn, *args, **kwargs)
     return f
-
-def _decode_result(result):
-    for k in result:
-        if isinstance(result[k], bytes):
-            result[k] = result[k].decode()
-        elif isinstance(result[k], list):
-            result[k] = [v.decode() for v in result[k]]
-    return result
 
 @_with_ldap_connection
 def get_person(conn, person_id):
     try:
-        results = conn.search_s("oakPrimaryPersonID={:d},ou=people,dc=oak,dc=ox,dc=ac,dc=uk".format(person_id),
-                                ldap.SCOPE_BASE)
-        return _decode_result(results[0][1])
-    except (ldap.NO_SUCH_OBJECT, IndexError):
+        conn.search("oakPrimaryPersonID={:d},ou=people,dc=oak,dc=ox,dc=ac,dc=uk".format(person_id),
+                    search_filter='(objectClass=*)',
+                    search_scope=ldap3.BASE,
+                    attributes=ldap3.ALL_ATTRIBUTES)
+        return conn.response[0]['attributes']
+    except (IndexError):
         raise NoSuchLDAPObject
 
 @_with_ldap_connection
@@ -55,10 +49,14 @@ def get_principal(conn, name):
     if not PRINCIPAL_NAME_RE.match(name):
         raise ValueError("Not a valid principal name: {!r}".format(name))
     try:
-        results = conn.search_s("krbPrincipalName={:s}@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk".format(name),
-                                ldap.SCOPE_BASE)
-        return _decode_result(results[0][1])
-    except (ldap.NO_SUCH_OBJECT, IndexError):
+        conn.search("krbPrincipalName={:s}@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk".format(name),
+                    search_filter='(objectClass=*)',
+                    search_scope=ldap3.BASE,
+                    attributes=ldap3.ALL_ATTRIBUTES)
+        #import pdb;pdb.set_trace()
+        return conn.response[0]['attributes']
+    except (IndexError):
+        print(name)
         raise NoSuchLDAPObject
 
 def parse_person_dn(dn):

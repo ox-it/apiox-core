@@ -2,7 +2,7 @@ aiohttp
 aiohttp_jinja2
 Django
 gssapi
--e git+https://github.com/ox-it/python-ldap.git@py3-sasl-unicode#egg=python-ldap
+ldap3
 psycopg2
 PyYAML
 raven
