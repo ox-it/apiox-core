@@ -18,10 +18,12 @@ class ReverseProxyHandler(BaseHandler):
                                'X-ApiOx-User',
                                'X-Forwarded-For',
                                'TE',
-                               'Accept-Encoding'}
+                               'Accept-Encoding',
+                               'Cookie'}
     discard_response_headers = {'Transfer-Encoding',
                                 'Content-Encoding',
-                                'Server'}
+                                'Server',
+                                'Set-Cookie'}
 
     def __init__(self, target):
         self.target = target
