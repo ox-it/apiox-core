@@ -96,7 +96,7 @@ class Principal(models.Model):
             return 'user'
         else:
             return last
-            
+
 
 class Token(models.Model):
     id = models.CharField(max_length=TOKEN_LENGTH, primary_key=True, default=generate_token)

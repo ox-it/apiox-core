@@ -16,21 +16,21 @@ def negotiate_auth_middleware(app, handler):
     def middleware(request):
         authorization = request.headers.get('Authorization', '')
         if authorization.startswith('Negotiate '):
-            service_name = 'HTTP@{}'.format(request.headers.get('Host').split(':')[0])
-            service_name = gssapi.Name(service_name, gssapi.C_NT_HOSTBASED_SERVICE)
+            service_name = 'HTTP/{}'.format(request.headers.get('Host').split(':')[0])
+            service_name = gssapi.Name(service_name)
 
             # The browser is authenticating using GSSAPI, trim off 'Negotiate ' and decode:
             in_token = base64.b64decode(authorization[10:])
 
-            server_cred = gssapi.Credential(service_name, usage=gssapi.C_ACCEPT)
-            ctx = gssapi.AcceptContext(server_cred)
+            server_creds = gssapi.Credentials(name=service_name, usage='accept')
+            ctx = gssapi.SecurityContext(creds=server_creds)
 
             # Feed the input token to the context, and get an output token in return
             out_token = ctx.step(in_token)
             if out_token:
                 request.negotiate_token = base64.b64encode(out_token).decode()
-            if ctx.established:
-                name = str(ctx.peer_name).split('@')[0]
+            if ctx.complete:
+                name = str(ctx.initiator_name).split('@')[0]
                 request.token = Principal.lookup(app, name).get_token_as_self(request.app)
             else:
                 raise HTTPUnauthorized
