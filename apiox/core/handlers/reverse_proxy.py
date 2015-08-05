@@ -5,9 +5,12 @@ import aiohttp
 import aiohttp.streams
 import aiohttp.web
 import aiohttp.multidict
+import aiohttp_negotiate
 
 from .base import BaseHandler
 from urllib.parse import urljoin
+
+CLIENT_AUTHENTICATION_REQUIRED = 491
 
 class ReverseProxyHandler(BaseHandler):
     discard_request_headers = {'Host',
@@ -28,6 +31,7 @@ class ReverseProxyHandler(BaseHandler):
 
     def __init__(self, target):
         self.target = target
+        self.session = aiohttp_negotiate.NegotiateClientSession()
 
     @asyncio.coroutine
     def __call__(self, request):
@@ -50,14 +54,17 @@ class ReverseProxyHandler(BaseHandler):
         content = request.content
         if isinstance(content, aiohttp.streams.EmptyStreamReader):
             content = None
-        upstream_response = yield from aiohttp.request(method=request.method,
-                                                       params=request.GET,
-                                                       allow_redirects=False,
-                                                       url=urljoin(self.target, request.match_info['path']),
-                                                       data=content,
-                                                       headers=headers)
+        upstream_response = yield from self.session.request(method=request.method,
+                                                            params=request.GET,
+                                                            allow_redirects=False,
+                                                            url=urljoin(self.target, request.match_info['path']),
+                                                            data=content,
+                                                            headers=headers)
         
-        if upstream_response.status == http.client.UNAUTHORIZED:
+        # Can't use 401 here, as that would apply to the request from the
+        # reverse-proxy to the proxied service, not from the client to the
+        # reverse-proxy. Hence we use a non-standard HTTP status code (491).
+        if upstream_response.status == CLIENT_AUTHENTICATION_REQUIRED:
             return (yield from self.require_authentication(request))
         
         headers = upstream_response.headers.copy()
