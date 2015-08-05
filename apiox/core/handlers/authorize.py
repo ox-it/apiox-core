@@ -47,8 +47,9 @@ class AuthorizeHandler(BaseHandler):
         except KeyError as e:
             self.error_response(HTTPBadRequest, request,
                                 'Invalid scope: <tt>{}</tt>'.format(escape(e.args[0])))
+        permissible_scopes = yield from client.get_permissible_scopes_for_user(request.token.user)
         disallowed_scopes = [scope for scope in scopes.values()
-                             if scope.name not in client.allowed_scopes
+                             if scope.name not in permissible_scopes
                                 and not scope.requestable_by_all_clients]
         if disallowed_scopes:
             self.error_response(HTTPBadRequest, request,

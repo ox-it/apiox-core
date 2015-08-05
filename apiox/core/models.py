@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import functools
 import re
@@ -8,6 +9,8 @@ from django.contrib.postgres.fields import ArrayField
 from .ldap import get_principal, get_person, NoSuchLDAPObject, parse_person_dn, parse_principal_dn
 from .scope import SCOPE_GRANT_REVIEW, SCOPE_GRANT_EXPIRE
 from .token import generate_token, hash_token, TOKEN_LENGTH, TOKEN_HASH_LENGTH, TOKEN_LIFETIME
+
+from aiogrouper import Group, SubjectLookup
 
 PRINCIPAL_TYPE_CHOICES = (
     ('user', 'User'),
@@ -58,6 +61,23 @@ class Principal(models.Model):
                      account=self,
                      user=self.user,
                      scopes=list(scopes))
+
+    @asyncio.coroutine
+    def get_permissible_scopes_for_user(self, app, user):
+        if self.is_person and user == self.user:
+            return set(s.name for s in app['scopes'].values() if s.available_to_user)
+        scope_grants = self.scopegrant_set.all()
+        target_groups = set()
+        for scope_grant in scope_grants:
+            target_groups |= set(scope_grant.target_groups)
+        in_groups = yield from app['grouper'].get_subject_memberships(SubjectLookup(identifier=user),
+                                                                      [Group(uuid=g) for g in target_groups])
+        in_groups = set(g.uuid for g in in_groups)
+        scopes = set()
+        for scope_grant in scope_grants:
+            if in_groups & set(scope_grant.target_groups):
+                scopes |= set(scope_grant.scopes)
+        return scopes
 
     @property
     def is_person(self):
@@ -205,7 +225,7 @@ class AuthorizationCode(models.Model):
 class ScopeGrant(models.Model):
     principal = models.ForeignKey(Principal)
     scopes = ArrayField(models.CharField(max_length=256), default=[])
-    target_group = models.CharField(max_length=32, blank=True)
+    target_groups = ArrayField(models.CharField(max_length=32, blank=True))
     implicit = models.BooleanField(default=None,
                                    help_text="If True, a client doesn't need to ask the user. "
                                              "If False, they need to perform an OAuth2 authorization before they can be granted a token with any of these scopes.")
@@ -214,7 +234,6 @@ class ScopeGrant(models.Model):
     expire_at = models.DateTimeField(default=lambda:datetime.datetime.utcnow() + SCOPE_GRANT_EXPIRE)
     justification = models.TextField()
     notes = models.TextField(blank=True)
-    responsible_user = UserField()
 
     class Meta:
         db_table = 'apiox_scope_grant'

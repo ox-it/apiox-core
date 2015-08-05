@@ -6,6 +6,7 @@ from aiohttp.web_exceptions import HTTPUnauthorized
 
 from ..models import Token
 from ..response import JSONResponse
+from ..token import hash_token
 
 @asyncio.coroutine
 def oauth2_middleware(app, handler):
@@ -23,7 +24,7 @@ def oauth2_middleware(app, handler):
             bearer_token = None
         if bearer_token:
             try:
-                token = Token.objects.get(access_token=bearer_token)
+                token = Token.objects.get(access_token_hash=hash_token(request.app, bearer_token))
             except Token.DoesNotExist:
                 authenticate_header = authentication_scheme \
                     + ', error="invalid_token", error_description="No such token"'
