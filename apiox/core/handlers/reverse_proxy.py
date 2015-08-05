@@ -54,12 +54,16 @@ class ReverseProxyHandler(BaseHandler):
         content = request.content
         if isinstance(content, aiohttp.streams.EmptyStreamReader):
             content = None
-        upstream_response = yield from self.session.request(method=request.method,
-                                                            params=request.GET,
-                                                            allow_redirects=False,
-                                                            url=urljoin(self.target, request.match_info['path']),
-                                                            data=content,
-                                                            headers=headers)
+
+        try:
+            upstream_response = yield from self.session.request(method=request.method,
+                                                                params=request.GET,
+                                                                allow_redirects=False,
+                                                                url=urljoin(self.target, request.match_info['path']),
+                                                                data=content,
+                                                                headers=headers)
+        except aiohttp.errors.ClientOSError as e:
+            raise aiohttp.web.HTTPServiceUnavailable from e
         
         # Can't use 401 here, as that would apply to the request from the
         # reverse-proxy to the proxied service, not from the client to the
