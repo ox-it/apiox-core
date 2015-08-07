@@ -17,6 +17,7 @@ def _get_ldap_connection(app):
     conn = ldap3.Connection(app['ldap-url'],
                             authentication=ldap3.SASL,
                             sasl_mechanism='GSSAPI',
+                            sasl_credentials=(True,),
                             user=app['ldap-user'])
     conn.bind()
     return conn
