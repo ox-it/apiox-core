@@ -66,18 +66,26 @@ class Principal(models.Model):
     def get_permissible_scopes_for_user(self, app, user):
         if self.is_person and user == self.user:
             return set(s.name for s in app['scopes'].values() if s.available_to_user)
+        results = yield from self.get_permissible_scopes_for_users(app, [user])
+        return results.popitem()[1]
+
+    @asyncio.coroutine
+    def get_permissible_scopes_for_users(self, app, users):
         scope_grants = self.scopegrant_set.all()
         target_groups = set()
         for scope_grant in scope_grants:
             target_groups |= set(scope_grant.target_groups)
-        in_groups = yield from app['grouper'].get_subject_memberships(SubjectLookup(identifier=user),
-                                                                      [Group(uuid=g) for g in target_groups])
-        in_groups = set(g.uuid for g in in_groups)
-        scopes = set()
-        for scope_grant in scope_grants:
-            if in_groups & set(scope_grant.target_groups):
-                scopes |= set(scope_grant.scopes)
-        return scopes
+        memberships = yield from app['grouper'].get_memberships(members=[SubjectLookup(identifier=u) for u in users],
+                                                                groups=[Group(uuid=g) for g in target_groups])
+        result = {}
+        for subject, in_groups in memberships.items():
+            in_groups = set(g.uuid for g in in_groups)
+            scopes = set()
+            for scope_grant in scope_grants:
+                if in_groups & set(scope_grant.target_groups):
+                    scopes |= set(scope_grant.scopes)
+            result[subject.identifier] = scopes
+        return result
 
     @property
     def is_person(self):
