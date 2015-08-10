@@ -10,7 +10,7 @@ from .ldap import get_principal, get_person, NoSuchLDAPObject, parse_person_dn, 
 from .scope import SCOPE_GRANT_REVIEW, SCOPE_GRANT_EXPIRE
 from .token import generate_token, hash_token, TOKEN_LENGTH, TOKEN_HASH_LENGTH, TOKEN_LIFETIME
 
-from aiogrouper import Group, SubjectLookup
+from aiogrouper import Group, Subject
 
 PRINCIPAL_TYPE_CHOICES = (
     ('user', 'User'),
@@ -75,16 +75,18 @@ class Principal(models.Model):
         target_groups = set()
         for scope_grant in scope_grants:
             target_groups |= set(scope_grant.target_groups)
-        memberships = yield from app['grouper'].get_memberships(members=[SubjectLookup(identifier=u) for u in users],
+        memberships = yield from app['grouper'].get_memberships(members=[Subject(id=u) for u in users],
                                                                 groups=[Group(uuid=g) for g in target_groups])
         result = {}
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = set()
+            if self.is_person and subject.identifier == self.user:
+                scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
             for scope_grant in scope_grants:
                 if in_groups & set(scope_grant.target_groups):
                     scopes |= set(scope_grant.scopes)
-            result[subject.identifier] = scopes
+            result[int(subject.id)] = scopes
         return result
 
     @property
