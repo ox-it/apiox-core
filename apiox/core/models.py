@@ -96,7 +96,7 @@ class Principal(models.Model):
         try:
             data = get_principal(app, name)
         except NoSuchLDAPObject as e:
-            raise Principal.DoesNotExist from e
+            data = {}
         user = parse_person_dn(data['oakPerson'][0]) if 'oakPerson' in data else None
         try:
             principal, created = Principal.objects.get(name=name), False

@@ -50,14 +50,15 @@ def get_principal(conn, name):
     if not PRINCIPAL_NAME_RE.match(name):
         raise ValueError("Not a valid principal name: {!r}".format(name))
     try:
-        conn.search("krbPrincipalName={:s}@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk".format(name),
+        local, realm = name.split('@')
+        conn.search("krbPrincipalName={local}@{realm},cn={realm:s},cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk".format(local=local,
+                                                                                                                          realm=realm),
                     search_filter='(objectClass=*)',
                     search_scope=ldap3.BASE,
                     attributes=ldap3.ALL_ATTRIBUTES)
         #import pdb;pdb.set_trace()
         return conn.response[0]['attributes']
     except (IndexError):
-        print(name)
         raise NoSuchLDAPObject
 
 def parse_person_dn(dn):
