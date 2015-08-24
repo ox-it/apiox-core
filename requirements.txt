@@ -1,3 +1,4 @@
+aiogrouper
 aiohttp
 aiohttp_jinja2
 Django
