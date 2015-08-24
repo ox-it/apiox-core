@@ -81,7 +81,7 @@ class Principal(models.Model):
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = set()
-            if self.is_person and subject.identifier == self.user:
+            if self.is_person and subject.id == self.user:
                 scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
             for scope_grant in scope_grants:
                 if in_groups & set(scope_grant.target_groups):
@@ -95,6 +95,8 @@ class Principal(models.Model):
 
     @classmethod
     def lookup(cls, app, name):
+        if '@' not in name:
+            name = name + '@' + app['default-realm']
         try:
             data = get_principal(app, name)
         except NoSuchLDAPObject as e:
@@ -111,7 +113,7 @@ class Principal(models.Model):
         return principal
 
     def determine_principal_type(self, app):
-        name = self.name.split('/')
+        name = self.name.split('@')[0].split('/')
         first, last = name[0], name[1] if len(name) > 1 else None
         user = get_person(app, self.user) if self.user else None
         if last and '.' in last:

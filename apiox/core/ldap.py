@@ -4,7 +4,7 @@ import threading
 
 import ldap3
 
-PRINCIPAL_NAME_RE = re.compile(r'^[A-Za-z0-9\-]+(?:/[A-Za-z0-9\-.]+)?$')
+PRINCIPAL_NAME_RE = re.compile(r'^[A-Za-z0-9\-]+(?:/[A-Za-z0-9\-.]+)?@[A-Z.]+$')
 PERSON_DN_RE = re.compile(r'^oakPrimaryPersonID=(\d+),ou=people,dc=oak,dc=ox,dc=ac,dc=uk$')
 PRINCIPAL_DN_RE = re.compile(r'^krbPrincipalName=([0-9a-zA-Z_/]+)@OX.AC.UK,cn=OX.AC.UK,cn=KerberosRealms,dc=oak,dc=ox,dc=ac,dc=uk$')
 
