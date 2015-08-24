@@ -2,6 +2,8 @@ aiohttp
 aiohttp_jinja2
 Django
 gssapi
+jsonpointer
+jsonschema
 ldap3
 psycopg2
 PyYAML

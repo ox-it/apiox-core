@@ -18,6 +18,7 @@ class IndexHandler(BaseHandler):
         for label, definition in request.app['definitions'].items():
             if label:
                 link = definition.copy()
+                link.pop('schemas', None)
                 link['href'] = request.app.router[label + ':index'].url()
                 body['_links']['app:' + label] = link
         

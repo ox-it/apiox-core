@@ -61,8 +61,18 @@ def get_principal(conn, name):
     except (IndexError):
         raise NoSuchLDAPObject
 
+@_with_ldap_connection
+def search(conn, **kwargs):
+    conn.search(**kwargs)
+    return conn.response
+
 def parse_person_dn(dn):
     return int(PERSON_DN_RE.match(dn).group(1))
 
 def parse_principal_dn(dn):
     return PRINCIPAL_DN_RE.match(dn).group(1)
+
+_escape_characters = frozenset('*\\()\0')
+def escape(s):
+    return ''.join(r'\{:X}'.format(c) if c in _escape_characters else c
+                   for c in s)

@@ -49,7 +49,7 @@ def request_logging_middleware(app, handler):
                    'responseLocation': response.headers.get('Location'),
                 })
             
-            logger.info("%s %s %s", request.method, request.path, status,
+            logger.info("%s %s %s %dms", request.method, request.path, status, extra['duration'] * 1000,
                         extra=extra)
         return response
     return middleware

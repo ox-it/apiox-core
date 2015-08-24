@@ -1,6 +1,8 @@
 import asyncio
 
-from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden
+from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
+import jsonpointer
+import jsonschema
 
 from ..response import JSONResponse
 
@@ -30,3 +32,29 @@ class BaseHandler(object):
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'Requires missing scopes.',
                                      'scopes': sorted(missing_scopes)})
+
+    @asyncio.coroutine
+    def validated_json(self, request, app_name, schema_name):
+        try:
+            body = yield from request.json()
+        except ValueError:
+            raise HTTPBadRequest
+        schema = request.app['definitions'][app_name]['schemas'][schema_name]
+        try:
+            jsonschema.validate(body, schema)
+        except jsonschema.ValidationError as e:
+            body = {
+                '_links': {
+                    'schema': {'href': '/schema/{}/{}'.format(app_name, schema_name)},
+                },
+            }
+            if e.path:
+                body['path'] = jsonpointer.JsonPointer.from_parts(e.path).path
+            if e.schema_path:
+                body['schemaPath'] = jsonpointer.JsonPointer.from_parts(e.schema_path).path
+            if e.message:
+                body['message'] = e.message
+            raise JSONResponse(base=HTTPBadRequest,
+                               body=body)
+        return body
+
