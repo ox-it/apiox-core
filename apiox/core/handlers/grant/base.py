@@ -1,15 +1,11 @@
-from aiohttp.web_exceptions import HTTPForbidden
+import asyncio
+
+from aiohttp.web_exceptions import HTTPForbidden, HTTPUnauthorized
 
 from ..base import BaseHandler
 from ...response import JSONResponse
 
 class BaseGrantHandler(BaseHandler):
-    def require_oauth2_client(self, request):
-        self.require_authentication(request)
-        if '/oauth2/client' not in request.token.scopes:
-            self.oauth2_exception(HTTPForbidden, request,
-                                  {'error': 'unauthorized_client',
-                                   'error_description': "Your client isn't registered as an OAuth2 client."})
 
     def determine_scopes(self, request):
         scopes = set(request.token.scopes)

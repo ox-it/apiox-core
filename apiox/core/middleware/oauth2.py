@@ -4,7 +4,7 @@ import json
 
 from aiohttp.web_exceptions import HTTPUnauthorized
 
-from ..models import Token
+from ..db import Token
 from ..response import JSONResponse
 from ..token import hash_token
 
@@ -23,9 +23,8 @@ def oauth2_middleware(app, handler):
         else:
             bearer_token = None
         if bearer_token:
-            try:
-                token = Token.objects.get(access_token_hash=hash_token(request.app, bearer_token))
-            except Token.DoesNotExist:
+            token = yield from Token.get(request.app, access_token_hash=hash_token(request.app, bearer_token))
+            if not token:
                 authenticate_header = authentication_scheme \
                     + ', error="invalid_token", error_description="No such token"'
                 raise JSONResponse(base=HTTPUnauthorized,

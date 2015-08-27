@@ -3,7 +3,7 @@ import base64
 
 from aiohttp.web_exceptions import HTTPUnauthorized
 
-from ..models import Principal
+from ..db import Principal
 
 
 @asyncio.coroutine
@@ -17,8 +17,8 @@ def basic_auth_middleware(app, handler):
         if request.headers.get('Authorization', '').startswith('Basic '):
             try:
                 username, password = base64.b64decode(request.headers['Authorization'][6:]).decode('utf-8').split(':', 1)
-                principal = Principal.lookup(app, username)
-                if principal.is_password_valid(password):
+                principal = yield from Principal.lookup(app, username)
+                if principal and principal.is_secret_valid(password):
                     request.token = principal.get_token_as_self(request.app)
             except (ValueError, IndexError, Principal.DoesNotExist):
                 raise HTTPUnauthorized(headers={'WWW-Authenticate': authentication_scheme})
