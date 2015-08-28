@@ -23,11 +23,11 @@ class BaseHandler(object):
                 response.headers.add('WWW-Authenticate', scheme)
             raise response
 
-        if with_user and not request.token.user:
+        if with_user and not request.token.user_id:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'This requires a user.'})
         
-        missing_scopes = set(scopes) - set(request.token.scopes)
+        missing_scopes = set(scopes) - set(request.token['scopes'])
         if missing_scopes:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'Requires missing scopes.',

@@ -11,7 +11,7 @@ from apiox.core.token import hash_token
 class RefreshTokenGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
     def __call__(self, request):
-        yield from self.require_oauth2_client(request)
+        yield from self.require_oauth2_client(request, grant_type='refresh_token')
         
         try:
             refresh_token = request.POST['refresh_token']
@@ -33,7 +33,6 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                    'error_description': 'The token has expired'})
 
         access_token, refresh_token = yield from \
-            token.refresh(app=request.app,
-                          scopes=request.POST.get('scope', '').split())
+            token.refresh(scopes=request.POST.get('scope', '').split())
         return JSONResponse(body=token.as_json(access_token=access_token,
                                                refresh_token=refresh_token))

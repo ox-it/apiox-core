@@ -16,10 +16,10 @@ def _with_ldap_connection(func):
         if not hasattr(self, '_conn'):
             self._conn = self._get_ldap_connection()
         try:
-            return func(self._conn, *args, **kwargs)
+            return func(self, self._conn, *args, **kwargs)
         except Exception: # Try again, once
             self._conn = self._get_ldap_connection()
-            return func(self._conn, *args, **kwargs)
+            return func(self, self._conn, *args, **kwargs)
     return f
 
 class LDAP(object):

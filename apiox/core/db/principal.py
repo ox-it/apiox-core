@@ -23,7 +23,7 @@ class PrincipalType(enum.Enum):
     root = 'root'
     admin = 'admin'
 
-principal = Table('apiox_principal', metadata,
+principal = Table('principal', metadata,
     Column('id', String(TOKEN_LENGTH), primary_key=True),
     Column('secret_hash', String(TOKEN_HASH_LENGTH), nullable=True),
     Column('name', String(), unique=True, index=True),
@@ -33,7 +33,7 @@ principal = Table('apiox_principal', metadata,
     Column('title', String, nullable=True),
     Column('description', String, nullable=True),
     Column('redirect_uris', ARRAY(String)),
-    Column('allowed_oauth2_grants', ARRAY(String)),
+    Column('allowed_oauth2_grant_types', ARRAY(String)),
 )
 
 class Principal(Instance):
@@ -44,42 +44,42 @@ class Principal(Instance):
             return False
         return hash_token(app, secret) == self['secret_hash']
 
-    def get_token_as_self(self, app):
+    @asyncio.coroutine
+    def get_token_as_self(self):
         from .token import Token
         scopes = set()
-        if self.is_oauth2_client:
-            scopes.update(s.name for s in app['scopes'].values() if s.available_to_client)
         if self.is_person:
-            scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
-        for scope_grant in self.scopegrant_set.all():
-            scopes.update(s for s in scope_grant.scopes if not app['scopes'][s].personal)
-        return Token(client=self,
-                     account=self,
+            scopes.update(s.name for s in self._app['scopes'].values() if s.available_to_user)
+        for scope_grant in (yield from ScopeGrant.all(self._app, client_id=self['id'])):
+            scopes.update(s for s in scope_grant.scopes if not self._app['scopes'][s].personal)
+        return Token(self._app,
+                     client_id=self.id,
+                     account_id=self.id,
                      user_id=self['user_id'],
                      scopes=list(scopes))
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_user(self, app, user_id):
+    def get_permissible_scopes_for_user(self, user_id):
         if self.is_person and user_id == self['user_id']:
-            return set(s.name for s in app['scopes'].values() if s.available_to_user)
-        results = yield from self.get_permissible_scopes_for_users(app, [user_id])
+            return set(s.name for s in self._app['scopes'].values() if s.available_to_user)
+        results = yield from self.get_permissible_scopes_for_users(self._app, [user_id])
         return results.popitem()[1]
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_users(self, app, user_ids):
+    def get_permissible_scopes_for_users(self, user_ids):
         scope_grants = yield from ScopeGrant.all(app, client_id=self['id'])
         target_groups = set()
         for scope_grant in scope_grants:
             target_groups |= set(scope_grant['target_groups'])
 
-        memberships = yield from app['grouper'].get_memberships(members=[Subject(id=u) for u in user_ids],
-                                                                groups=[Group(uuid=g) for g in target_groups])
+        memberships = yield from self._app['grouper'].get_memberships(members=[Subject(id=u) for u in user_ids],
+                                                                      groups=[Group(uuid=g) for g in target_groups])
         result = {}
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = set()
             if self.is_person and subject.id == self.user:
-                scopes.update(s.name for s in app['scopes'].values() if s.available_to_user)
+                scopes.update(s.name for s in self._app['scopes'].values() if s.available_to_user)
             for scope_grant in scope_grants:
                 if in_groups & set(scope_grant['target_groups']):
                     scopes |= set(scope_grant['scopes'])
@@ -88,7 +88,7 @@ class Principal(Instance):
 
     @property
     def is_person(self):
-        return self.type in {'user', 'itss', 'root', 'admin'}
+        return self['type'] in {'user', 'itss', 'root', 'admin'}
 
     @classmethod
     def lookup(cls, app, name):
@@ -102,12 +102,13 @@ class Principal(Instance):
         
         principal = yield from cls.get(app, name=name)
         if principal:
-            principal = Principal(principal)
+            principal = Principal(app, principal)
         else:
-            principal = Principal(id=generate_token(),
+            principal = Principal(app,
+                                  id=generate_token(),
                                   name=name,
                                   user_id=user_id,
-                                  type=principal.determine_principal_type(app, name, user_id))
+                                  type=cls.determine_principal_type(app, name, user_id))
             yield from principal.insert()
         return principal
 

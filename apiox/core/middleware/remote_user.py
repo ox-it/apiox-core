@@ -10,11 +10,11 @@ def remote_user_middleware(app, handler):
         if 'X-Remote-User' in request.headers:
             principal = yield from Principal.lookup(app, request.headers['X-Remote-User'])
             if principal:
-                request.token = principal.get_token_as_self(request.app)
+                request.token = yield from principal.get_token_as_self()
         if 'remote_user' in request.GET:
             principal = yield from Principal.lookup(app, request.GET['remote_user'])
             if principal:
-                request.token = principal.get_token_as_self(request.app)
+                request.token = principal.get_token_as_self()
         return (yield from handler(request))
     return middleware
 

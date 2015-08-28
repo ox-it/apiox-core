@@ -11,7 +11,7 @@ from apiox.core.token import hash_token
 class AuthorizationCodeGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
     def __call__(self, request):
-        yield from self.require_oauth2_client(request)
+        yield from self.require_oauth2_client(request, grant_type='authorization_code')
         
         try:
             code = request.POST['code']
@@ -37,6 +37,6 @@ class AuthorizationCodeGrantHandler(BaseGrantHandler):
                                   {'error': 'access_denied',
                                    'error_description': 'Incorrect `redirect_uri` specified'})
 
-        token, (access_token, refresh_token) = yield from code.convert_to_access_token(app=request.app)
+        token, (access_token, refresh_token) = yield from code.convert_to_access_token()
         return JSONResponse(body=token.as_json(access_token=access_token,
                                                refresh_token=refresh_token))

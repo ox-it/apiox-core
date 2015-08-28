@@ -11,7 +11,7 @@
   <p>{{ client.description }}</p>
 </div>
 
-<p>&hellip; would like to act on your behalf{% if token.account.type != "user" %} <strong>in your role as {{ token.account.get_type_display() }}</strong>{% endif %} with the following permissions:</p>
+<p>&hellip; would like to act on your behalf{% if account.type != "user" %} <strong>in your role as {{ account.get_type_display() }}</strong>{% endif %} with the following permissions:</p>
 
 <ul class="authorize-scopes">
 {% for scope in scopes.values() %}
@@ -23,7 +23,7 @@
 </ul>
 
 <form method="post">
-<input type="hidden" name="client_id" value="{{ client.name }}">
+<input type="hidden" name="client_id" value="{{ client.id }}">
 <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 {% if state is not none %}<input type="hidden" name="state" value="{{ state }}">{% endif %}

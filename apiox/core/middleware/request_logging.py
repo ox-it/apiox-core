@@ -38,9 +38,9 @@ def request_logging_middleware(app, handler):
             }
             if hasattr(request, 'token'):
                 extra.update({
-                   'user': request.token.user,
-                   'client': request.token.client,
-                   'account': request.token.account,
+                   'user': request.token.user_id,
+                   'client': request.token.client_id,
+                   'account': request.token.account_id,
                 })
             if response is not None:
                 extra.update({
