@@ -1,6 +1,7 @@
 import asyncio
 
-from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
+from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest,\
+    HTTPMethodNotAllowed
 import jsonpointer
 import jsonschema
 
@@ -13,6 +14,7 @@ def authentication_scheme_sort_key(scheme):
             'Negotiate': 1}.get(scheme, 2)
 
 class BaseHandler(object):
+    http_methods = {'get', 'post', 'put', 'delete', 'patch', 'options', 'head'}
 
     @asyncio.coroutine
     def require_authentication(self, request, *, with_user=False, scopes=()):
@@ -58,3 +60,13 @@ class BaseHandler(object):
                                body=body)
         return body
 
+    @asyncio.coroutine
+    def __call__(self, request):
+        method = request.method.lower()
+        if method not in self.http_methods:
+            raise HTTPMethodNotAllowed
+        try:
+            handler = getattr(self, method)
+        except AttributeError:
+            raise HTTPMethodNotAllowed
+        return (yield from handler(request))
