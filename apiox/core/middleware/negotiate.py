@@ -4,7 +4,7 @@ import gssapi
 
 from aiohttp.web_exceptions import HTTPUnauthorized
 
-from ..models import Principal
+from ..db import Principal
 
 @asyncio.coroutine
 def negotiate_auth_middleware(app, handler):
@@ -31,7 +31,7 @@ def negotiate_auth_middleware(app, handler):
                 request.negotiate_token = base64.b64encode(out_token).decode()
             if ctx.complete:
                 name = str(ctx.initiator_name)
-                request.token = Principal.lookup(app, name).get_token_as_self(request.app)
+                request.token = yield from (yield from Principal.lookup(app, name)).get_token_as_self()
             else:
                 raise HTTPUnauthorized
                     

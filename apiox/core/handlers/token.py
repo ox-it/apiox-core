@@ -1,11 +1,14 @@
+import asyncio
 import json
 
-from aiohttp.web_exceptions import HTTPBadRequest
+from aiohttp.web_exceptions import HTTPBadRequest, HTTPUnauthorized, HTTPForbidden
 
 from .base import BaseHandler
+from .. import db
 from ..response import JSONResponse
 
 class TokenRequestHandler(BaseHandler):
+
     def __call__(self, request):
         yield from request.post()
 

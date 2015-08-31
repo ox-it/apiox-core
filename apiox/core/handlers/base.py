@@ -1,6 +1,7 @@
 import asyncio
 
-from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest
+from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest,\
+    HTTPMethodNotAllowed
 import jsonpointer
 import jsonschema
 
@@ -13,6 +14,7 @@ def authentication_scheme_sort_key(scheme):
             'Negotiate': 1}.get(scheme, 2)
 
 class BaseHandler(object):
+    http_methods = {'get', 'post', 'put', 'delete', 'patch', 'options', 'head'}
 
     @asyncio.coroutine
     def require_authentication(self, request, *, with_user=False, scopes=()):
@@ -23,11 +25,11 @@ class BaseHandler(object):
                 response.headers.add('WWW-Authenticate', scheme)
             raise response
 
-        if with_user and not request.token.user:
+        if with_user and not request.token.user_id:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'This requires a user.'})
         
-        missing_scopes = set(scopes) - set(request.token.scopes)
+        missing_scopes = set(scopes) - set(request.token['scopes'])
         if missing_scopes:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'Requires missing scopes.',
@@ -58,3 +60,13 @@ class BaseHandler(object):
                                body=body)
         return body
 
+    @asyncio.coroutine
+    def __call__(self, request):
+        method = request.method.lower()
+        if method not in self.http_methods:
+            raise HTTPMethodNotAllowed
+        try:
+            handler = getattr(self, method)
+        except AttributeError:
+            raise HTTPMethodNotAllowed
+        return (yield from handler(request))

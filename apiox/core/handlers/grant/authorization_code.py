@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 
-from ... import models
+from ... import db
 from ...response import JSONResponse
 
 from .base import BaseGrantHandler
@@ -11,7 +11,7 @@ from apiox.core.token import hash_token
 class AuthorizationCodeGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
     def __call__(self, request):
-        self.require_oauth2_client(request)
+        yield from self.require_oauth2_client(request, grant_type='authorization_code')
         
         try:
             code = request.POST['code']
@@ -20,24 +20,23 @@ class AuthorizationCodeGrantHandler(BaseGrantHandler):
                                   {'error': 'invalid_request',
                                    'error_description': "Missing `code` parameter"})
         
-        try:
-            code_hash = hash_token(request.app, code)
-            code = models.AuthorizationCode.objects.get(code_hash=code_hash)
-        except models.AuthorizationCode.DoesNotExist:
+        code_hash = hash_token(request.app, code)
+        code = yield from db.AuthorizationCode.get(request.app, code_hash=code_hash)
+        if not code:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
                                    'error_description': 'Unrecognised authorization code'})
 
-        if code.expire_at < datetime.datetime.utcnow():
+        if code['expire_at'] < datetime.datetime.utcnow():
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
                                    'error_description': 'The authorization code has expired'})
 
-        if code.redirect_uri and code.redirect_uri != request.POST.get('redirect_uri'):
+        if code['redirect_uri'] and code['redirect_uri'] != request.POST.get('redirect_uri'):
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
                                    'error_description': 'Incorrect `redirect_uri` specified'})
 
-        token, (access_token, refresh_token) = code.convert_to_access_token(app=request.app)
+        token, (access_token, refresh_token) = yield from code.convert_to_access_token()
         return JSONResponse(body=token.as_json(access_token=access_token,
                                                refresh_token=refresh_token))
