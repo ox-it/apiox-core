@@ -1,7 +1,4 @@
-import asyncio
-
 from sqlalchemy import MetaData
-from sqlalchemy.sql import select
 
 metadata = MetaData()
 
