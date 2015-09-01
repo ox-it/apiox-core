@@ -62,12 +62,12 @@ class Principal(Instance):
     def get_permissible_scopes_for_user(self, user_id):
         if self.is_person and user_id == self['user_id']:
             return set(s.name for s in self._app['scopes'].values() if s.available_to_user)
-        results = yield from self.get_permissible_scopes_for_users(self._app, [user_id])
+        results = yield from self.get_permissible_scopes_for_users([user_id])
         return results.popitem()[1]
 
     @asyncio.coroutine
     def get_permissible_scopes_for_users(self, user_ids):
-        scope_grants = yield from ScopeGrant.all(app, client_id=self['id'])
+        scope_grants = yield from ScopeGrant.all(self._app, client_id=self['id'])
         target_groups = set()
         for scope_grant in scope_grants:
             target_groups |= set(scope_grant['target_groups'])
