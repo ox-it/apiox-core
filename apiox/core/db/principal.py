@@ -78,7 +78,7 @@ class Principal(Instance):
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = set()
-            if self.is_person and subject.id == self.user:
+            if self.is_person and subject.id == self.user_id:
                 scopes.update(s.name for s in self._app['scopes'].values() if s.available_to_user)
             for scope_grant in scope_grants:
                 if in_groups & set(scope_grant['target_groups']):
