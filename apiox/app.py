@@ -26,6 +26,7 @@ def create_app(*,
                api_names,
                middlewares=default_middlewares,
                grant_handler_classes=default_grant_handler_classes,
+               api_base,
                default_realm='EXAMPLE.ORG',
                auth_realm='example.org',
                ldap=None,
@@ -38,6 +39,7 @@ def create_app(*,
     app['scopes'] = scope.Scopes()
     app['definitions'] = {}
     
+    app['api-base'] = api_base
     app['auth-realm'] = auth_realm
     app['default-realm'] = default_realm
 
