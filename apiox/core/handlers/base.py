@@ -21,7 +21,7 @@ class BaseHandler(object):
         if not hasattr(request, 'token'):
             response = HTTPUnauthorized()
             for scheme in sorted(request.app.authentication_schemes,
-                                                   key=authentication_scheme_sort_key):
+                                 key=authentication_scheme_sort_key):
                 response.headers.add('WWW-Authenticate', scheme)
             raise response
 
