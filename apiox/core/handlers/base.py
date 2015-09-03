@@ -68,5 +68,6 @@ class BaseHandler(object):
         try:
             handler = getattr(self, method)
         except AttributeError:
-            raise HTTPMethodNotAllowed
+            raise HTTPMethodNotAllowed(method=request.method,
+                                       allowed_methods=[m for m in self.http_methods if getattr(self, m, None)])
         return (yield from handler(request))
