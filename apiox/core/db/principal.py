@@ -69,20 +69,25 @@ class Principal(Instance):
     def get_permissible_scopes_for_users(self, user_ids):
         scope_grants = yield from ScopeGrant.all(self._app, client_id=self['id'])
         target_groups = set()
+        universal_scopes = set()
         for scope_grant in scope_grants:
-            target_groups |= set(scope_grant['target_groups'])
+            if scope_grant.target_groups is None:
+                universal_scopes.update(scope_grant.scopes)
+            else:
+                target_groups |= set(scope_grant.target_groups)
 
         memberships = yield from self._app['grouper'].get_memberships(members=[Subject(id=u) for u in user_ids],
                                                                       groups=[Group(uuid=g) for g in target_groups])
         result = {}
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
-            scopes = set()
+            scopes = universal_scopes.copy()
             if self.is_person and subject.id == self.user_id:
                 scopes.update(s.name for s in self._app['scopes'].values() if s.available_to_user)
             for scope_grant in scope_grants:
-                if in_groups & set(scope_grant['target_groups']):
-                    scopes |= set(scope_grant['scopes'])
+                if scope_grant.target_groups is not None and \
+                   in_groups & set(scope_grant.target_groups):
+                    scopes |= set(scope_grant.scopes)
             result[int(subject.id)] = scopes
         return result
 
