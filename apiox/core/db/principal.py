@@ -123,14 +123,14 @@ class Principal(Instance):
         first, last = name[0], name[1] if len(name) > 1 else None
         user = app['ldap'].get_person(user_id) if user_id else None
         if last and '.' in last:
-            return 'service'
+            return PrincipalType.service
         elif not user:
-            return 'society'
+            return PrincipalType.society
         elif first not in (ldap.parse_principal_dn(user['oakPrincipal'][0]),
                            user['oakOxfordSSOUsername'][0]) \
              and not re.match('^[a-z]{4}\d{4}$', first):
-            return 'project'
+            return PrincipalType.project
         elif not last:
-            return 'user'
+            return PrincipalType.user
         else:
-            return last
+            return PrincipalType[last]
