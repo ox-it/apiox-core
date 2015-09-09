@@ -35,6 +35,7 @@ def create_app(*,
                token_salt=''):
     app = aiohttp.web.Application(middlewares=middlewares)
     app.on_response_start.connect(middleware.add_negotiate_token)
+    app.on_response_start.connect(middleware.add_cors_headers)
 
     app['scopes'] = scope.Scopes()
     app['definitions'] = {}

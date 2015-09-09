@@ -9,3 +9,6 @@ from .raven import raven_middleware
 
 # Logging
 from .request_logging import request_logging_middleware
+
+# Cross-Origin Resource Sharing
+from .cors import add_cors_headers
