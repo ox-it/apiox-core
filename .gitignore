@@ -1,7 +1,8 @@
 *.pyc
 .project
 .pydevproject
-dist
-build
-*.egg-info/
+/dist
+/build
+/*.egg-info/
 /.idea
+__pycache__
