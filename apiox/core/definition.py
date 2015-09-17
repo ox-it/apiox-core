@@ -34,6 +34,10 @@ def hook_in(app):
                          handlers.TokenRequestHandler(),
                          name='oauth2:token')
 
+    app.router.add_route('GET', '/token-details',
+                         handlers.TokenDetailsHandler(),
+                         name='token-details')
+
     app.router.add_static('/static', os.path.join(os.path.dirname(__file__), 'static'))
 
     app['scopes'].add(name='/oauth2/client',
