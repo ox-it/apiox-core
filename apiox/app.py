@@ -1,3 +1,5 @@
+import functools
+
 import importlib
 
 import aiohttp.web
@@ -33,12 +35,19 @@ def create_app(*,
                db=None,
                grouper=None,
                token_salt=''):
+    import apiox.core.db
+
     app = aiohttp.web.Application(middlewares=middlewares)
     app.on_response_start.connect(middleware.add_negotiate_token)
     app.on_response_start.connect(middleware.add_cors_headers)
 
     app['scopes'] = scope.Scopes()
     app['definitions'] = {}
+
+    app['orm_mapping'] = {}
+    app['register_model'] = functools.partial(apiox.core.db.register_model, app['orm_mapping'])
+
+    app['commands'] = {}
     
     app['api-base'] = api_base
     app['auth-realm'] = auth_realm
