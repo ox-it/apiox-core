@@ -29,9 +29,13 @@ class ReverseProxyHandler(BaseHandler):
                                 'Server',
                                 'Set-Cookie'}
 
-    def __init__(self, target):
+    def __init__(self, app, target):
         self.target = target
         self.session = aiohttp_negotiate.NegotiateClientSession()
+        app.register_on_finish(self.close_session)
+
+    def close_session(self, app):
+        self.session.close()
 
     @asyncio.coroutine
     def __call__(self, request):

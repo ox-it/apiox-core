@@ -57,6 +57,8 @@ def create_app(*,
     app['ldap'] = ldap
     app['db'] = db
     app['grouper'] = grouper
+
+    app.register_on_finish(lambda app: grouper.close())
     
     app['token-salt'] = token_salt
 
