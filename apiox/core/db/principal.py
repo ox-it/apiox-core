@@ -122,6 +122,13 @@ class Principal(Model):
             yield from principal.insert()
         return principal
 
+    @property
+    def type(self):
+        value = self['type']
+        if not isinstance(value, PrincipalType):
+            value = PrincipalType[value]
+        return value
+
     @classmethod
     def determine_principal_type(cls, app, name, user_id):
         name = name.split('@')[0].split('/')
