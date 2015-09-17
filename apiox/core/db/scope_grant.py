@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgres import ARRAY
 
 from ..token import TOKEN_LENGTH
 
-from . import metadata, Instance
+from . import metadata, Model
 
 scope_grant = Table('scope_grant', metadata,
     Column('id', Integer, primary_key=True),
@@ -19,5 +19,5 @@ scope_grant = Table('scope_grant', metadata,
     Column('notes', String, default=''),
 )
 
-class ScopeGrant(Instance):
+class ScopeGrant(Model):
     table = scope_grant

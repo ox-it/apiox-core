@@ -4,7 +4,7 @@ import datetime
 from sqlalchemy import Column, DateTime, String, ForeignKey, Table, Integer
 from sqlalchemy.dialects.postgresql.base import ARRAY
 
-from . import metadata, Instance
+from . import metadata, Model
 from .principal import Principal
 from ..token import TOKEN_LENGTH, TOKEN_HASH_LENGTH, generate_token, hash_token, TOKEN_LIFETIME
 
@@ -24,7 +24,7 @@ token = Table('token', metadata,
     Column('expire_at', DateTime(), nullable=True),
 )
 
-class Token(Instance):
+class Token(Model):
     table = token
     
     def as_json(self, *, access_token=None, refresh_token=None):

@@ -7,7 +7,7 @@ from sqlalchemy import Table, Column, Integer, String
 from sqlalchemy.sql import select
 from sqlalchemy_utils.types.choice import ChoiceType
 
-from . import metadata, Instance
+from . import metadata, Model
 from .. import ldap
 from ..token import TOKEN_LENGTH, TOKEN_HASH_LENGTH, hash_token, generate_token
 from sqlalchemy.dialects.postgresql.base import ARRAY
@@ -19,9 +19,16 @@ class PrincipalType(enum.Enum):
     project = 'project'
     society = 'society'
     service = 'service'
-    itss = 'ITSS'
+    itss = 'itss'
     root = 'root'
     admin = 'admin'
+
+person_principal_types = {
+    PrincipalType.user,
+    PrincipalType.itss,
+    PrincipalType.root,
+    PrincipalType.admin,
+}
 
 principal = Table('principal', metadata,
     Column('id', String(TOKEN_LENGTH), primary_key=True),
@@ -36,7 +43,7 @@ principal = Table('principal', metadata,
     Column('allowed_oauth2_grant_types', ARRAY(String)),
 )
 
-class Principal(Instance):
+class Principal(Model):
     table = principal
 
     def is_secret_valid(self, app, secret):
@@ -93,7 +100,7 @@ class Principal(Instance):
 
     @property
     def is_person(self):
-        return self['type'] in {'user', 'itss', 'root', 'admin'}
+        return self.type in person_principal_types
 
     @classmethod
     def lookup(cls, app, name):
@@ -106,9 +113,7 @@ class Principal(Instance):
         user_id = ldap.parse_person_dn(data['oakPerson'][0]) if 'oakPerson' in data else None
         
         principal = yield from cls.get(app, name=name)
-        if principal:
-            principal = Principal(app, principal)
-        else:
+        if not principal:
             principal = Principal(app,
                                   id=generate_token(),
                                   name=name,

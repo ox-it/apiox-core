@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy import Table, Column, String, Integer, DateTime, ForeignKey
 
-from . import metadata, Instance
+from . import metadata, Model
 from apiox.core.token import TOKEN_HASH_LENGTH, TOKEN_LENGTH
 from sqlalchemy.dialects.postgresql import ARRAY
 
@@ -24,7 +24,7 @@ authorization_code = Table('authorization_code', metadata,
     
 )
 
-class AuthorizationCode(Instance):
+class AuthorizationCode(Model):
     table = authorization_code
 
     @asyncio.coroutine

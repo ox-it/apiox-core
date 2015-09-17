@@ -1,15 +1,16 @@
 import asyncio
+import collections
 
 from sqlalchemy.sql import select
 
-from . import _orm_mapping
 
-class Instance(dict):
+class Model(collections.OrderedDict):
     def __init__(self, app, *args, **kwargs):
+        super().__init__()
         self._app = app
-        super().update({c.name: None for c in self.table.columns})
         self._updates = {}
         self._foreign = {}
+        super().update({c.name: None for c in self.table.columns})
         if args:
             self.update(args[0])
         self.update(kwargs)
@@ -39,8 +40,8 @@ class Instance(dict):
 
     @classmethod
     @asyncio.coroutine
-    def all(cls, app, **kwargs):
-        stmt = select([cls.table]).where(*[getattr(cls.table.c, k) == kwargs[k] for k in kwargs])
+    def all(cls, app, *args, **kwargs):
+        stmt = select([cls.table]).where(*(list(args) + [getattr(cls.table.c, k) == kwargs[k] for k in kwargs]))
         with (yield from app['db']) as conn:
             res = yield from conn.execute(stmt)
             rows = yield from res.fetchall()
@@ -79,7 +80,7 @@ class Instance(dict):
             else:
                 raise IndexError
             rel_col = fk.column
-            rel_instance = _orm_mapping[rel_col.table]
+            rel_instance = self._app['orm_mapping'][rel_col.table]
             self._foreign[name] = yield from rel_instance.get(self._app, **{rel_col.name: self[name]})
         return self._foreign[name]
 

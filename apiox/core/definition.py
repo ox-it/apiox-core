@@ -15,7 +15,10 @@ def create_router():
     return router
 
 def hook_in(app):
+    from . import command
+    from . import db
     from . import handlers
+
     app['oauth2-grant-handlers'] = create_grant_handlers()
 
     app['definitions'][None] = {'title': 'University of Oxford API'}
@@ -41,3 +44,9 @@ def hook_in(app):
                       title='OAuth2 user',
                       description="Allows a user to grant access to a client to act on their behalf.",
                       available_to_user=True)
+
+    for model in (db.Principal, db.Token, db.AuthorizationCode, db.ScopeGrant):
+        app['register_model'](model)
+
+    app['commands']['run_server'] = command.run_server
+    app['commands']['create_models'] = command.create_models
