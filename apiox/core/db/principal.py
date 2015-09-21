@@ -55,10 +55,10 @@ principal = Table('principal', metadata,
 class Principal(Model):
     table = principal
 
-    def is_secret_valid(self, app, secret):
+    def is_secret_valid(self, secret):
         if not self['secret_hash']:
             return False
-        return hash_token(app, secret) == self['secret_hash']
+        return hash_token(self._app, secret) == self['secret_hash']
 
     @asyncio.coroutine
     def get_token_as_self(self):
