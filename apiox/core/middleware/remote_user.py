@@ -22,6 +22,7 @@ def remote_user_middleware_factory(use_header=False, use_param=False,
                         request.token = principal.get_token_as_self()
             return (yield from handler(request))
         return middleware
+    return remote_user_middleware
 
 def persist_remote_user_query_param(request, response):
     if 'remote_user' in request.GET and 'Location' in response.headers:
