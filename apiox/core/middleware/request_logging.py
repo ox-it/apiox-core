@@ -35,6 +35,7 @@ def request_logging_middleware(app, handler):
                 'requestContentType': request.headers.get('Content-Type'),
                 'requestContentLength': request.content_length,
                 'status': status,
+                'remoteAddr': request.transport.get_extra_info('peername')[0],
             }
             if hasattr(request, 'token'):
                 extra.update({
