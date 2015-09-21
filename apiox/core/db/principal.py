@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql.base import ARRAY
 
 from .scope_grant import ScopeGrant
 
+
 class PrincipalType(enum.Enum):
     user = 'user'
     project = 'project'
@@ -22,6 +23,14 @@ class PrincipalType(enum.Enum):
     itss = 'itss'
     root = 'root'
     admin = 'admin'
+
+PrincipalType.user.label = 'user'
+PrincipalType.project.label = 'project account'
+PrincipalType.society.label = 'club or society'
+PrincipalType.service.label = 'service principal'
+PrincipalType.itss.label = 'ITSS'
+PrincipalType.root.label = 'root user'
+PrincipalType.admin.label = 'admin user'
 
 person_principal_types = {
     PrincipalType.user,

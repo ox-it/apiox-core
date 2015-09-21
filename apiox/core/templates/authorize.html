@@ -11,7 +11,7 @@
   <p>{{ client.description }}</p>
 </div>
 
-<p>&hellip; would like to act on your behalf{% if account.type != "user" %} <strong>in your role as {{ account.get_type_display() }}</strong>{% endif %} with the following permissions:</p>
+<p>&hellip; would like to act on your behalf{% if account.type.value != "user" %} <strong>in your role as {{ account.type.label }}</strong>{% endif %} with the following permissions:</p>
 
 <ul class="authorize-scopes">
 {% for scope in scopes.values() %}
