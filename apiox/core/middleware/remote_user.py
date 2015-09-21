@@ -1,20 +1,25 @@
 import asyncio
+import ipaddress
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from ..db import Principal
 
 @asyncio.coroutine
-def remote_user_middleware(app, handler):
+def remote_user_middleware(app, handler,
+                           use_header=False, use_param=False,
+                           accept_from=()):
     @asyncio.coroutine
     def middleware(request):
-        if 'X-Remote-User' in request.headers:
-            principal = yield from Principal.lookup(app, request.headers['X-Remote-User'])
-            if principal:
-                request.token = yield from principal.get_token_as_self()
-        if 'remote_user' in request.GET:
-            principal = yield from Principal.lookup(app, request.GET['remote_user'])
-            if principal:
-                request.token = principal.get_token_as_self()
+        remote_addr = ipaddress.ip_address(request.transport.get_extra_info('peername')[0])
+        if any(remote_addr in range for range in accept_from):
+            if use_header and 'X-Remote-User' in request.headers:
+                principal = yield from Principal.lookup(app, request.headers['X-Remote-User'])
+                if principal:
+                    request.token = yield from principal.get_token_as_self()
+            if use_param and 'remote_user' in request.GET:
+                principal = yield from Principal.lookup(app, request.GET['remote_user'])
+                if principal:
+                    request.token = principal.get_token_as_self()
         return (yield from handler(request))
     return middleware
 
