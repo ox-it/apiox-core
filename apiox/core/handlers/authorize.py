@@ -44,7 +44,7 @@ class AuthorizeHandler(BaseHandler):
             self.error_response(HTTPBadRequest, request,
                                 'The <tt>redirect_uri</tt> parameter was missing.')
         
-        if redirect_uri not in client.redirect_uris:
+        if redirect_uri not in (client.redirect_uris or ()):
             self.error_response(HTTPBadRequest, request,
                                 'The <tt>redirect_uri</tt> parameter was incorrect.')
         
