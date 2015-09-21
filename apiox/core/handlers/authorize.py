@@ -34,7 +34,7 @@ class AuthorizeHandler(BaseHandler):
             self.error_response(HTTPBadRequest, request,
                                 "Couldn't find client")
         
-        if 'authorization_code' not in client.allowed_oauth2_grant_types:
+        if 'authorization_code' not in (client.allowed_oauth2_grant_types or ()):
             self.error_response(HTTPBadRequest, request,
                                 "The client is not allowed to request authorization.")
 
