@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+from urllib.parse import urlparse, parse_qs, urlencode
 
 from aiohttp.web_exceptions import HTTPUnauthorized
 
@@ -41,3 +42,11 @@ def oauth2_middleware(app, handler):
             request.token = token
         return (yield from handler(request))
     return middleware
+
+def persist_bearer_token_query_param(request, response):
+    if 'bearer_token' in request.GET and 'Location' in response.headers:
+        parsed = urlparse(response.headers['Location'])
+        qs = parse_qs(parsed.query, keep_blank_values=True)
+        qs['bearer_token'] = [request.GET['bearer_token']]
+        parsed = parsed._replace(query=urlencode(qs, doseq=True))
+        response.headers['Location'] = parsed.geturl()

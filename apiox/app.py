@@ -40,6 +40,7 @@ def create_app(*,
     app = aiohttp.web.Application(middlewares=middlewares)
     app.on_response_start.connect(middleware.add_negotiate_token)
     app.on_response_start.connect(middleware.add_cors_headers)
+    app.on_response_start.connect(middleware.persist_bearer_token_query_param)
 
     app['scopes'] = scope.Scopes()
     app['definitions'] = {}
