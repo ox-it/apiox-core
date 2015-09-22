@@ -24,7 +24,7 @@ class BaseGrantHandler(BaseHandler):
             if not client or not client.is_secret_valid(client_secret):
                 self.oauth2_exception(HTTPUnauthorized, request,
                                       {'error': 'invalid_client'})
-            request.token = yield from client.get_token_as_self(request.app)
+            request.token = yield from client.get_token_as_self()
         if not (yield from request.token.client).allowed_oauth2_grant_types:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'unauthorized_client',
