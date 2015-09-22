@@ -1,5 +1,6 @@
 import asyncio
 
+from aiohttp.web import Response
 from aiohttp.web_exceptions import HTTPUnauthorized, HTTPForbidden, HTTPBadRequest,\
     HTTPMethodNotAllowed
 import jsonpointer
@@ -73,3 +74,7 @@ class BaseHandler(object):
             raise HTTPMethodNotAllowed(method=request.method,
                                        allowed_methods=[m for m in self.http_methods if getattr(self, m, None)])
         return (yield from handler(request))
+
+    @asyncio.coroutine
+    def options(self, request):
+        return Response(headers={'Allow': ', '.join(m for m in self.http_methods if hasattr(self, m))})
