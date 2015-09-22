@@ -23,18 +23,16 @@ def hook_in(app):
 
     app['definitions'][None] = {'title': 'University of Oxford API'}
     
-    app.router.add_route('GET', '/', handlers.IndexHandler(),
+    app.router.add_route('*', '/', handlers.IndexHandler(),
                          name='index')
-    app.router.add_route('GET', '/authorize',
-                         handlers.AuthorizeHandler().get,
+    app.router.add_route('*', '/authorize',
+                         handlers.AuthorizeHandler(),
                          name='oauth2:authorize')
-    app.router.add_route('POST', '/authorize',
-                         handlers.AuthorizeHandler().post)
-    app.router.add_route('POST', '/token',
+    app.router.add_route('*', '/token',
                          handlers.TokenRequestHandler(),
                          name='oauth2:token')
 
-    app.router.add_route('GET', '/token-details',
+    app.router.add_route('*', '/token-details',
                          handlers.TokenDetailsHandler(),
                          name='token-details')
 

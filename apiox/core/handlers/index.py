@@ -4,7 +4,7 @@ from ..response import JSONResponse
 from apiox.core import __version__
 
 class IndexHandler(BaseHandler):
-    def __call__(self, request):
+    def get(self, request):
         body = {
             'title': 'University of Oxford API',
             'version': __version__,

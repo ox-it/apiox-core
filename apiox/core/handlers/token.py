@@ -9,7 +9,7 @@ from ..response import JSONResponse
 
 class TokenRequestHandler(BaseHandler):
 
-    def __call__(self, request):
+    def post(self, request):
         yield from request.post()
 
         try:
