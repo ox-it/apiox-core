@@ -1,9 +1,13 @@
+import asyncio
+
 from .base import BaseHandler
 from ..response import JSONResponse
 
 from apiox.core import __version__
 
+
 class IndexHandler(BaseHandler):
+    @asyncio.coroutine
     def get(self, request):
         body = {
             'title': 'University of Oxford API',
