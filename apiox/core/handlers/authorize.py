@@ -65,6 +65,7 @@ class AuthorizeHandler(BaseHandler):
         
         return {'client': client,
                 'account': (yield from request.token.account),
+                'authorize_url': request.app.router['oauth2:authorize'].url(),
                 'redirect_uri': redirect_uri,
                 'state': data.get('state'),
                 'scopes': scopes}
