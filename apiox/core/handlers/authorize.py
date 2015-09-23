@@ -109,9 +109,12 @@ class AuthorizeHandler(BaseHandler):
             params = {'code': code}
             if context['state']:
                 params['state'] = context['state']
-            
-            redirect_uri = context['redirect_uri'] + '?' + urllib.parse.urlencode(params)
-            raise HTTPFound(redirect_uri)
+        elif 'reject' in request.POST:
+            params = {'error': 'access_denied'}
+        else:
+            raise HTTPBadRequest
+        redirect_uri = context['redirect_uri'] + '?' + urllib.parse.urlencode(params)
+        raise HTTPFound(redirect_uri)
         
 
     def error_response(self, exception_cls, request, error):
