@@ -31,14 +31,16 @@ def oauth2_middleware(app, handler):
                 raise JSONResponse(base=HTTPUnauthorized,
                                    body={'error': 'invalid_token',
                                          'error_description': 'No such token'},
-                                   headers={'WWW-Authenticate': authenticate_header})
+                                   headers={'WWW-Authenticate': authenticate_header,
+                                            'Access-Control-Expose-Headers': 'WwW-Authenticate'})
             if token.refresh_at and token.refresh_at <= datetime.datetime.utcnow():
                 authenticate_header = authentication_scheme \
                     + ', error="invalid_token", error_description="Token expired"'
                 raise JSONResponse(base=HTTPUnauthorized,
                                    body={'error': 'invalid_token',
                                          'error_description': 'Token expired'},
-                                   headers={'WWW-Authenticate': authenticate_header})
+                                   headers={'WWW-Authenticate': authenticate_header,
+                                            'Access-Control-Expose-Headers': 'WwW-Authenticate'})
             request.token = token
         return (yield from handler(request))
     return middleware
