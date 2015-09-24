@@ -72,7 +72,7 @@ class Token(Model):
         access_token = generate_token()
         self['access_token_hash'] = hash_token(self._app, access_token)
         refresh_token = yield from self.set_refresh()
-        self.save()
+        yield from self.save()
         return access_token, refresh_token
 
     @classmethod
