@@ -13,14 +13,13 @@ def add_cors_headers(request, response):
     # There's a bug in iOS that means that 401 responses are hidden if there's a Basic challenge in the
     # WWW-Authenticate header. This lets clients request that the header be renamed so as not to trigger it.
     # See e.g. http://stackoverflow.com/questions/11025213/ios-authentication-using-xmlhttprequest-handling-401-reponse
-    # for more details. We use a query param instead of a header to request the rename this so that CORS requests don't
-    # get preflighted.
-    if 'rename_www_authenticate' in request.GET and \
+    # for more details.
+    if 'X-Rename-WWW-Authenticate' in request.headers and \
                     'WWW-Authenticate' in response.headers and \
-                    request.GET['rename_www_authenticate'] not in response.headers:
+                    request.headers['X-Rename-WWW-Authenticate'] not in response.headers:
         for key, value in response.headers.items():
             if key.upper() == 'WWW-Authenticate'.upper():
-                response.headers.add(request.GET['rename_www_authenticate'], value)
+                response.headers.add(request.headers['X-Rename-WWW-Authenticate'], value)
         del response.headers['WWW-Authenticate']
 
     if 'Origin' in request.headers:
