@@ -24,8 +24,6 @@ class BaseHandler(object):
             for scheme in sorted(request.app.authentication_schemes,
                                  key=authentication_scheme_sort_key):
                 response.headers.add('WWW-Authenticate', scheme)
-            if request.headers.get('Origin'):
-                response.headers.add('Access-Control-Expose-Headers', 'WWW-Authenticate')
             raise response
 
         if with_user and not request.token.user_id:
