@@ -1,1 +1,2 @@
 recursive-include apiox/core/static *.*
+recursive-include apiox/core/templates *.*
