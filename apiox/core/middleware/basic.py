@@ -14,6 +14,10 @@ def basic_auth_middleware(app, handler):
     app.authentication_schemes.add(authentication_scheme)
     @asyncio.coroutine
     def middleware(request):
+        # Don't do any authentication on OPTIONS requests
+        if request.method.upper() == 'OPTIONS':
+            return (yield from handler(request))
+
         if request.headers.get('Authorization', '').startswith('Basic '):
             try:
                 username, password = base64.b64decode(request.headers['Authorization'][6:]).decode('utf-8').split(':', 1)

@@ -17,6 +17,10 @@ def oauth2_middleware(app, handler):
     app.authentication_schemes.add(authentication_scheme)
     @asyncio.coroutine
     def middleware(request):
+        # Don't do any authentication on OPTIONS requests
+        if request.method.upper() == 'OPTIONS':
+            return (yield from handler(request))
+
         if request.headers.get('Authorization', '').startswith('Bearer '):
             bearer_token = request.headers['Authorization'][7:]
         elif 'bearer_token' in request.GET:

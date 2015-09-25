@@ -14,6 +14,10 @@ def negotiate_auth_middleware(app, handler):
     app.authentication_schemes.add(authentication_scheme)
     @asyncio.coroutine
     def middleware(request):
+        # Don't do any authentication on OPTIONS requests
+        if request.method.upper() == 'OPTIONS':
+            return (yield from handler(request))
+
         authorization = request.headers.get('Authorization', '')
         if authorization.startswith('Negotiate '):
             service_name = 'HTTP/{}'.format(request.headers.get('Host').split(':')[0])
