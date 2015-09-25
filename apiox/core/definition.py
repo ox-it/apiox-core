@@ -52,3 +52,4 @@ def hook_in(app):
 
     app['commands']['run_server'] = command.run_server
     app['commands']['create_models'] = command.create_models
+    app['commands']['shell'] = command.shell

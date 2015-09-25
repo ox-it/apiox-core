@@ -10,6 +10,7 @@ def create_models(app):
     engine = sqlalchemy.create_engine(db_url)
     metadata.create_all(engine)
 
+
 def run_server(app):
     import asyncio
     import os
@@ -24,3 +25,12 @@ def run_server(app):
         loop.run_forever()
     except KeyboardInterrupt:
         pass
+
+
+def shell(app):
+    import code
+    import readline
+    readline.parse_and_bind("tab: complete")
+    shell = code.InteractiveConsole({'app': app,
+                                     'loop': app.loop})
+    shell.interact()
