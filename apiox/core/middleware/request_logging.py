@@ -54,3 +54,4 @@ def request_logging_middleware(app, handler):
                         extra=extra)
         return response
     return middleware
+

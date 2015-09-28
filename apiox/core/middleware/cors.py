@@ -1,3 +1,5 @@
+import asyncio
+
 simple_headers = {
     'Cache-Control',
     'Content-Language',
@@ -9,6 +11,7 @@ simple_headers = {
 }
 simple_headers = set(name.upper() for name in simple_headers)
 
+@asyncio.coroutine
 def add_cors_headers(request, response):
     # There's a bug in iOS that means that 401 responses are hidden if there's a Basic challenge in the
     # WWW-Authenticate header. This lets clients request that the header be renamed so as not to trigger it.

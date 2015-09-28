@@ -24,6 +24,7 @@ def remote_user_middleware_factory(use_header=False, use_param=False,
         return middleware
     return remote_user_middleware
 
+@asyncio.coroutine
 def persist_remote_user_query_param(request, response):
     if 'remote_user' in request.GET and 'Location' in response.headers:
         parsed = urlparse(response.headers['Location'])

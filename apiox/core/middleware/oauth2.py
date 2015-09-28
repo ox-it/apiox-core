@@ -47,6 +47,7 @@ def oauth2_middleware(app, handler):
         return (yield from handler(request))
     return middleware
 
+@asyncio.coroutine
 def persist_bearer_token_query_param(request, response):
     if 'bearer_token' in request.GET and 'Location' in response.headers:
         parsed = urlparse(response.headers['Location'])
