@@ -93,7 +93,7 @@ class Principal(Model):
                 target_groups |= set(scope_grant.target_groups)
 
         memberships = yield from self._app['grouper'].get_memberships(members=[Subject(id=u) for u in user_ids],
-                                                                      groups=[Group(uuid=g) for g in target_groups])
+                                                                      groups=[Group(self._app['grouper'], uuid=g) for g in target_groups])
         result = {}
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
