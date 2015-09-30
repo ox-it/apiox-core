@@ -28,11 +28,11 @@ class LDAP(object):
 
     def _get_ldap_connection(self):
         conn = ldap3.Connection(self.url,
+                                auto_bind=ldap3.AUTO_BIND_TLS_BEFORE_BIND,
                                 authentication=ldap3.SASL,
                                 sasl_mechanism='GSSAPI',
                                 sasl_credentials=(True,),
                                 user=self.user)
-        conn.bind()
         return conn
 
     @_with_ldap_connection
