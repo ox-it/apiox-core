@@ -65,7 +65,8 @@ class BaseHandler(object):
     def __call__(self, request):
         method = request.method.lower()
         if method not in self.http_methods:
-            raise HTTPMethodNotAllowed
+            raise HTTPMethodNotAllowed(method=request.method,
+                                       allowed_methods=[m for m in self.http_methods if getattr(self, m, None)])
         try:
             handler = getattr(self, method)
         except AttributeError:
