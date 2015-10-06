@@ -75,15 +75,17 @@ class Principal(Model):
                      scopes=list(scopes))
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_user(self, user_id):
+    def get_permissible_scopes_for_user(self, user_id, *, only_implicit=True):
         if self.is_person and user_id == self['user_id']:
             return set(s.name for s in self._app['scopes'].values() if s.available_to_user)
-        results = yield from self.get_permissible_scopes_for_users([user_id])
+        results = yield from self.get_permissible_scopes_for_users([user_id],
+                                                                   only_implicit=only_implicit)
         return results.popitem()[1]
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_users(self, user_ids):
-        scope_grants = yield from ScopeGrant.all(self._app, client_id=self['id'])
+    def get_permissible_scopes_for_users(self, user_ids, *, only_implicit=True):
+        scope_grants = yield from ScopeGrant.all(self._app, client_id=self['id'],
+                                                 **({'implicit': True} if only_implicit else {}))
         target_groups = set()
         universal_scopes = set()
         for scope_grant in scope_grants:

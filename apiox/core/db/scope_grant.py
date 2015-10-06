@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, String, DateTime
+from sqlalchemy import Table, Column, Integer, ForeignKey, String, DateTime, Boolean
 from sqlalchemy.dialects.postgres import ARRAY
 
 from ..token import TOKEN_LENGTH
@@ -10,6 +10,7 @@ scope_grant = Table('scope_grant', metadata,
     Column('client_id', String(TOKEN_LENGTH), ForeignKey('principal.id')),
     Column('scopes', ARRAY(String(255))),
     Column('target_groups', ARRAY(String(32))),
+    Column('implicit', Boolean),
 
     Column('granted_at', DateTime()),
     Column('review_at', DateTime()),
