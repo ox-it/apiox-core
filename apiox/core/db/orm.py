@@ -2,6 +2,7 @@ import asyncio
 import collections
 
 from sqlalchemy.sql import select
+from sqlalchemy.sql.expression import and_
 
 
 class Model(collections.OrderedDict):
@@ -41,7 +42,11 @@ class Model(collections.OrderedDict):
     @classmethod
     @asyncio.coroutine
     def all(cls, app, *args, **kwargs):
-        stmt = select([cls.table]).where(*(list(args) + [getattr(cls.table.c, k) == kwargs[k] for k in kwargs]))
+        where = list(args) + [getattr(cls.table.c, k) == kwargs[k] for k in kwargs]
+        stmt = select([cls.table])
+        if where:
+            where = where[0] if len(where) == 1 else and_(*where)
+            stmt = stmt.where(where)
         with (yield from app['db']) as conn:
             res = yield from conn.execute(stmt)
             rows = yield from res.fetchall()
