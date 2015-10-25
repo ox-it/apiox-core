@@ -1,6 +1,7 @@
 aiogrouper
 aiohttp
 aiohttp_jinja2
+aioredis
 gssapi
 jsonpointer
 jsonschema

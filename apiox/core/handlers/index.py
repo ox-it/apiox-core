@@ -19,11 +19,14 @@ class IndexHandler(BaseHandler):
             },
         }
 
-        for label, definition in request.app['definitions'].items():
-            if label:
-                link = definition.copy()
-                link.pop('schemas', None)
-                link['href'] = request.app.router[label + ':index'].url()
-                body['_links']['app:' + label] = link
+        for definition in (yield from request.app['api'].list()):
+            if definition.get('advertise', True):
+                link = {'title': definition['title']}
+                try:
+                    link['href'] = request.app.router[definition['id'] + ':index'].url()
+                except KeyError:
+                    logger.warning("API %s has no index handler", definition['id'])
+                    continue
+                body['_links']['app:' + definition['id']] = link
         
         return JSONResponse(body=body)

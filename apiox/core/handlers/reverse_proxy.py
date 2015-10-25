@@ -34,6 +34,9 @@ class ReverseProxyHandler(BaseHandler):
         self.session = aiohttp_negotiate.NegotiateClientSession()
         app.register_on_finish(self.close_session)
 
+    def get_target(self, request):
+        return self.target
+
     def close_session(self, app):
         self.session.close()
 
@@ -63,7 +66,8 @@ class ReverseProxyHandler(BaseHandler):
             upstream_response = yield from self.session.request(method=request.method,
                                                                 params=request.GET,
                                                                 allow_redirects=False,
-                                                                url=urljoin(self.target, request.match_info['path']),
+                                                                url=urljoin(self.get_target(request),
+                                                                            request.match_info['path']),
                                                                 data=content,
                                                                 headers=headers)
         except aiohttp.errors.ClientOSError as e:
