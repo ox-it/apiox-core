@@ -75,15 +75,16 @@ class Principal(Model):
                      scopes=list(scopes))
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_user(self, user_id, *, only_implicit=True):
-        if self.is_person and user_id == self['user_id']:
-            return set(s.name for s in self._app['scopes'].values() if s.available_to_user)
+    def get_permissible_scopes_for_user(self, user_id, *, only_implicit=True, token=None):
+        if token and token.user_id == user_id:
+            return set(token.scopes)
         results = yield from self.get_permissible_scopes_for_users([user_id],
-                                                                   only_implicit=only_implicit)
+                                                                   only_implicit=only_implicit,
+                                                                   token=token)
         return results.popitem()[1]
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_users(self, user_ids, *, only_implicit=True):
+    def get_permissible_scopes_for_users(self, user_ids, *, only_implicit=True, token=None):
         scope_grants = yield from ScopeGrant.all(self._app, client_id=self['id'],
                                                  **({'implicit': True} if only_implicit else {}))
         target_groups = set()
@@ -100,8 +101,8 @@ class Principal(Model):
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = universal_scopes.copy()
-            if self.is_person and subject.id == self.user_id:
-                scopes.update(s.name for s in self._app['scopes'].values() if s.available_to_user)
+            if token and token.user_id == subject.id:
+                scopes.update(token.scopes)
             for scope_grant in scope_grants:
                 if scope_grant.target_groups is not None and \
                    in_groups & set(scope_grant.target_groups):

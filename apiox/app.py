@@ -1,3 +1,4 @@
+import asyncio
 import functools
 
 import importlib
@@ -24,6 +25,7 @@ default_grant_handler_classes = (
     grant_handlers.RefreshTokenGrantHandler,
 )
 
+@asyncio.coroutine
 def create_app(*,
                api_names,
                middlewares=default_middlewares,
