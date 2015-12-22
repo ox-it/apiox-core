@@ -35,7 +35,7 @@ def negotiate_auth_middleware(app, handler):
                 request.negotiate_token = base64.b64encode(out_token).decode()
             if ctx.complete:
                 name = str(ctx.initiator_name)
-                request.token = yield from (yield from Principal.lookup(app, name)).get_token_as_self()
+                request.token = Principal.lookup(app, request.session, name=name).get_token_as_self(request.session)
             else:
                 raise HTTPUnauthorized
                     

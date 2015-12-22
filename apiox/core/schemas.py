@@ -1,4 +1,5 @@
 API = 'api'
+CLIENT = 'client'
 
 _scope_schema = {
     'properties': {
@@ -6,7 +7,7 @@ _scope_schema = {
         'title': {'type': 'string'},
         'description': {'type': 'string'},
         'grantedToUser': {'type': 'boolean', 'default': False},
-        'subjectType': {'type': 'string', 'enum': ['person']},
+        'personal': {'type': 'boolean', 'default': False},
         'lifetime': {'type': 'number'},
         'advertise': {'type': 'boolean', 'default': True},
         'aliases': {
@@ -31,9 +32,24 @@ _api_schema = {
             'type': 'array',
             'items': _scope_schema,
         },
-        'requireScope': {'type': 'string'},
+        'requireScope': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'minItems': 1,
+            'uniqueItems': True,
+        },
         'requireUser': {'type': 'boolean', 'default': False},
         'requireAuth': {'type': 'boolean', 'default': False},
+        'requireGroup': {'type': 'string'},
+        'requireRole': {
+            'type': 'array',
+            'items': {
+                'type': 'string',
+                'pattern': '^[a-z]+$',
+            },
+            'uniqueItems': True,
+        },
+        'available':  {'type': 'boolean', 'default': True},
         'paths': {
             'type': 'array',
             'items': {
@@ -49,7 +65,14 @@ _api_schema = {
                     },
                     'sourcePath': {'type': 'string'},
                     'targetPath': {'type': 'string'},
-                    'requireScope': {'type': 'string'},
+                    'requireScope': {'oneOf': [{
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'minItems': 1,
+                        'uniqueItems': True,
+                    }, {
+                        'type': 'null',
+                    }]},
                     'requireUser': {'type': 'boolean', 'default': False},
                     'requireAuth': {'type': 'boolean', 'default': False},
                     'requireRole': {
@@ -60,6 +83,7 @@ _api_schema = {
                         },
                         'uniqueItems': True,
                     },
+                    'available':  {'type': 'boolean', 'default': True},
                 },
                 'required': ['sourcePath', 'targetPath'],
             },
@@ -68,6 +92,15 @@ _api_schema = {
     'required': ['id', 'name'],
 }
 
+_client_schema = {
+    'properties': {
+        'id': {'type': 'string'},
+        'title': {'type': 'string'},
+        'description': {'type': 'string'},
+    }
+}
+
 schemas = {
     API: _api_schema,
+    CLIENT: _client_schema,
 }

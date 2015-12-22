@@ -1,10 +1,13 @@
 import asyncio
+import logging
 
 from .base import BaseHandler
 from ..response import JSONResponse
 
 from apiox.core import __version__
+from apiox.core.db import API
 
+logger = logging.getLogger(__name__)
 
 class IndexHandler(BaseHandler):
     @asyncio.coroutine
@@ -19,14 +22,17 @@ class IndexHandler(BaseHandler):
             },
         }
 
-        for definition in (yield from request.app['api'].list()):
-            if definition.get('advertise', True):
-                link = {'title': definition['title']}
-                try:
-                    link['href'] = request.app.router[definition['id'] + ':index'].url()
-                except KeyError:
-                    logger.warning("API %s has no index handler", definition['id'])
-                    continue
-                body['_links']['app:' + definition['id']] = link
+        with request.app['db-session']() as session:
+            for api in session.query(API).filter_by(advertise=True).all():
+                link = {'title': api.title}
+                if not api.base:
+                    try:
+                        link['href'] = request.app.router[api.id + ':index'].url()
+                    except KeyError:
+                        logger.warning("API %s has no index handler", api.id)
+                        continue
+                else:
+                    link['href'] = '/{}/'.format(api.id)
+                body['_links']['app:' + api.id] = link
         
         return JSONResponse(body=body)

@@ -32,7 +32,8 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                   {'error': 'access_denied',
                                    'error_description': 'The token has expired'})
 
-        access_token, refresh_token = yield from \
+        access_token, refresh_token = \
             token.refresh(scopes=request.POST.get('scope', '').split())
+        request.session.add(token)
         return JSONResponse(body=token.as_json(access_token=access_token,
                                                refresh_token=refresh_token))

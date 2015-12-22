@@ -5,7 +5,6 @@ import json
 class APIManagement(object):
     def __init__(self, app):
         self.app = app
-        self.redis = app['redis']
 
     @asyncio.coroutine
     def get(self, api_id):
@@ -16,17 +15,20 @@ class APIManagement(object):
         return json.loads(data.decode())
 
     @asyncio.coroutine
-    def list(self, *, advertised=None):
+    def all(self, *, api_ids=None, advertised=None):
         with (yield from self.redis) as redis:
-            apis = yield from redis.hgetall('api')
+            if api_ids is None:
+                data = yield from redis.hgetall('api')
+            else:
+                data = yield from redis.hmget('api', list(api_ids))
 
-        apis = [json.loads(v.decode()) for v in apis.values()]
+        data = ((k, json.loads(v.decode())) for k, v in data.items())
         if advertised is True:
-            apis = [api for api in apis if api.get('advertise', True)]
+            data = ((k, v) for k, v in data if v.get('advertise', True))
         elif advertised is False:
-            apis = [api for api in apis if not api.get('advertise', True)]
+            data = ((k, v) for k, v in data if not v.get('advertise', True))
 
-        return apis
+        return dict(data)
 
     @asyncio.coroutine
     def register(self, api_id, definition, *,
@@ -59,5 +61,5 @@ class APIManagement(object):
                 current_data = json.loads(current_data.decode())
                 current_scope_ids = set(s['id'] for s in current_data.get('scopes', ()))
                 if current_scope_ids:
-                    yield from redis.hdel('scope', current_scope_ids)
+                    yield from redis.hdel('scope', *current_scope_ids)
             yield from redis.hdel('api', api_id)
