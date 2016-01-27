@@ -3,7 +3,8 @@ import enum
 import re
 
 from aiogrouper import Subject, Group
-from sqlalchemy import Table, Column, Integer, String
+from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import select
 from sqlalchemy_utils.types.choice import ChoiceType
@@ -41,6 +42,12 @@ person_principal_types = {
     PrincipalType.admin,
 }
 
+
+principal_administrator = Table('principal_administrator', Base.metadata,
+    Column('principal_id', String(TOKEN_LENGTH), ForeignKey('principal.id'), primary_key=True),
+    Column('administrator_id', String(TOKEN_LENGTH), ForeignKey('principal.id'), primary_key=True),
+)
+
 class Principal(Base):
     __tablename__ = 'principal'
 
@@ -49,7 +56,6 @@ class Principal(Base):
     name = Column(String(), unique=True, index=True)
     user_id = Column(Integer, nullable=True)
     type = Column(ChoiceType(PrincipalType))
-    administrators = Column(ARRAY(Integer))
     title = Column(String, nullable=True)
     description = Column(String, nullable=True)
     redirect_uris = Column(ARRAY(String))
@@ -57,6 +63,13 @@ class Principal(Base):
 
     #account_token = relationship('Token', 'Token.account_id', backref='account')
     #client_token = relationship('Token', 'Token.client_id', backref='client')
+    administrator_of = relationship('Principal', secondary=principal_administrator,
+                                  primaryjoin=(id==principal_administrator.c.principal_id),
+                                  secondaryjoin=(id==principal_administrator.c.administrator_id))
+
+    administrators = relationship('Principal', secondary=principal_administrator,
+                                    primaryjoin=(id==principal_administrator.c.administrator_id),
+                                    secondaryjoin=(id==principal_administrator.c.principal_id))
 
     def is_secret_valid(self, app, secret):
         if not self.secret_hash:
@@ -167,7 +180,40 @@ class Principal(Base):
         else:
             return PrincipalType[last]
 
-    def to_json(self):
-        return {'id': self.id,
-                'name': self.name,
-                'description': self.description}
+    def may_administrate(self, token):
+        if not token:
+            return False
+        if token.account not in self.administrators:
+            return False
+        if not any (s.id == '/oauth2/manage-client' for s in token.scopes):
+            return False
+        return True
+
+
+    def to_json(self, app, may_administrate=False):
+        body = {
+            'id': self.id,
+            'name': self.name,
+            'title': self.title,
+            'description': self.description,
+            '_links': {
+                'self':{
+                    'href': app.router['client:detail'].url(parts={'id': self.id})
+                },
+            },
+        }
+        if may_administrate:
+            body.update({
+                'oauth2GrantTypes': self.allowed_oauth2_grant_types,
+                'redirectURIs': self.redirect_uris,
+                '_embedded': {
+                    'administrator': [a.to_json(app) for a in self.administrators]
+                },
+            })
+            body['_links']['api:secret'] = {
+                'href': app.router['client:secret'].url(parts={'id': self.id}),
+                'title': 'Generate or remove client secret',
+                'description': 'POST to generate a client secret, replacing any existing secret. DELETE to remove any '
+                               'existing secret.',
+            }
+        return body

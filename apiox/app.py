@@ -12,7 +12,6 @@ import jinja2
 from sqlalchemy.orm import sessionmaker
 
 from apiox.core import middleware
-from apiox.core import scope
 from apiox.core.handlers import grant as grant_handlers
 
 default_middlewares = (

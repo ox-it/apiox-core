@@ -3,7 +3,7 @@ __version__ = '0.1'
 import asyncio
 import os
 
-from .schemas import schemas
+from .schemas import get_schemas
 from .db import API
 
 api_id = 'core'
@@ -20,6 +20,8 @@ def setup(app):
     from . import handlers
 
     app['oauth2-grant-handlers'] = _create_grant_handlers()
+
+    app['schemas'][api_id] = get_schemas(app)
 
     app.router.add_route('*', '/', handlers.IndexHandler(),
                          name='index')
@@ -41,6 +43,9 @@ def setup(app):
                          handlers.api.APIDetailHandler(),
                          name='api:detail')
 
+    app.router.add_route('*', '/client',
+                         handlers.client.ClientListHandler(),
+                         name='client:list')
     app.router.add_route('*', '/client/self',
                          handlers.client.ClientSelfHandler(),
                          name='client:self')
@@ -72,5 +77,15 @@ def declare_api(session):
             'description': 'Allows a user to grant access to a client to act on their behalf.',
             'grantedToUser': True,
             'personal': True,
+        }, {
+            'id': '/oauth2/manage-client',
+            'title': 'Manage OAuth2 clients',
+            'description': 'Allows access to manage OAuth2 clients (e.g. update metadata and generate a client secret.',
+            'grantedToUser': True,
+        }, {
+            'id': '/api/manage',
+            'title': 'Manage APIs',
+            'description': 'Allows access to manage and register APIs',
+            'grantedToUser': True,
         }]
     }))

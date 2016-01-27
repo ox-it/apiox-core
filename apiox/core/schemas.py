@@ -92,15 +92,30 @@ _api_schema = {
     'required': ['id', 'name'],
 }
 
-_client_schema = {
-    'properties': {
-        'id': {'type': 'string'},
-        'title': {'type': 'string'},
-        'description': {'type': 'string'},
-    }
-}
 
-schemas = {
-    API: _api_schema,
-    CLIENT: _client_schema,
-}
+def _get_client_schema(app):
+    return {
+        'properties': {
+            'id': {'type': 'string'},
+            'title': {'type': 'string'},
+            'description': {'type': 'string'},
+            'redirectURIs': {
+                'type': 'array',
+                'items': {'type': 'string', 'format': 'url'},
+            },
+            'oauth2GrantTypes': {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                    'enum': list(app['oauth2-grant-handlers'])
+                },
+            },
+        }
+    }
+
+
+def get_schemas(app):
+    return {
+        API: _api_schema,
+        CLIENT: _get_client_schema(app),
+    }
