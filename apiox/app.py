@@ -90,11 +90,6 @@ def create_app(*,
 
     yield from setup_apis(app)
 
-    from .core import handlers
-    app.router.add_route('*', '/{api_id}/{path:.*}',
-                         handlers.api.APIDispatchHandler(app),
-                         name='api:dispatch')
-
     return app
 
 

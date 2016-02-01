@@ -1,47 +1,43 @@
 import asyncio
-import json
 
 from aiohttp.web_exceptions import HTTPNotFound, HTTPConflict, HTTPNoContent, HTTPForbidden
 
+from apiox.core.db import API
+from . import APIBaseHandler
 from ..base import BaseHandler
 from apiox.core.response import JSONResponse
 
 
-class APIDetailHandler(BaseHandler):
+class APIDetailHandler(APIBaseHandler):
     @asyncio.coroutine
     def get(self, request):
-        api_id = request.match_info['id']
-        try:
-            definition = yield from request.app['api'].get(api_id)
-        except KeyError:
-            raise HTTPNotFound
-        else:
-            definition['_links'] = {
-                'self': {
-                    'href': request.app.router['api:detail'].url(parts={'id': definition['id']}),
-                }
-            }
-            return JSONResponse(body=definition)
+        api = self.get_api(request)
+        return JSONResponse(body=api.to_json(request.app,
+                                             may_administrate=api.may_administrate(getattr(request, 'token', None)))
 
     @asyncio.coroutine
     def put(self, request):
-        api_id = request.match_info['id']
+        api = self.get_api(request, modifying=True)
+        if not api:
+            api = API(id=request.match_info['id'])
         definition = yield from self.validated_json(request, None, 'api')
 
-        if 'id' in definition and definition['id'] != api_id:
+        if 'id' in definition and definition['id'] != api.id:
             raise HTTPConflict
-        if not all(scope['id'].startswith('/{}/'.format(api_id)) for scope in definition.get('scopes', ())):
+        if not all(scope['id'].startswith('/{}/'.format(api,id)) for scope in definition.get('scopes', ())):
             raise HTTPConflict
-        if not all(path['sourcePath'].startswith('/{}/'.format(api_id)) for path in definition.get('paths', ())):
+        if not all(path['sourcePath'].startswith('/{}/'.format(api.id)) for path in definition.get('paths', ())):
             raise HTTPConflict
         if 'localImplementation' in definition:
             raise HTTPForbidden
 
-        yield from request.app['api'].register(api_id, definition)
+        request.session.merge(api)
         return HTTPNoContent()
 
     @asyncio.coroutine
     def delete(self, request):
-        yield from request.app['api'].deregister(request.match_info['id'])
+        api = self.get_api(request, modifying=True)
+        if not api:
+            raise HTTPNotFound
+        request.session.delete(api)
         return HTTPNoContent()
-

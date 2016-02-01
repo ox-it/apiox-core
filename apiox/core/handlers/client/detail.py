@@ -4,32 +4,12 @@ from aiohttp.web_exceptions import HTTPNoContent, HTTPForbidden
 from apiox.core import api_id
 from apiox.core.db import Principal
 from apiox.core.handlers import BaseHandler
+from apiox.core.handlers.client.base import BaseClientHandler
 from apiox.core.response import JSONResponse
 from apiox.core.schemas import CLIENT
 from apiox.core.token import generate_token, hash_token
 
-
-class BaseClientHandler(BaseHandler):
-    @asyncio.coroutine
-    def get_client(self, request, modifying=False):
-        client = request.session.query(Principal).filter_by(id=request.match_info['id']).one()
-        if modifying and not client.may_administrate(getattr(request, 'token', None)):
-            raise JSONResponse(body={'error': 'forbidden',
-                                     'error_description': 'You are not an adminsitrator or do not have the required scope to manage clients.'},
-                               base=HTTPForbidden)
-        return client
-
-
-class ClientListHandler(BaseClientHandler):
-    @asyncio.coroutine
-    def get(self, request):
-        yield from self.require_authentication(request, require_scopes={'/oauth2/manage-client'})
-        body = {
-            '_embedded': {
-                'item': [p.to_json(request.app, True) for p in request.token.account.administrator_of],
-            },
-        },
-        return JSONResponse(body=body)
+__all__ = ['ClientSelfHandler', 'ClientDetailHandler', 'ClientSecretHandler']
 
 
 class ClientSelfHandler(BaseClientHandler):

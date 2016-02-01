@@ -58,6 +58,10 @@ def setup(app):
 
     app.router.add_static('/static', os.path.join(os.path.dirname(__file__), 'static'))
 
+    app.router.add_route('*', '/{api_id}/{path:.*}',
+                         handlers.api.APIDispatchHandler(app),
+                         name='api:dispatch')
+
     app['commands']['run_server'] = command.run_server
     app['commands']['create_models'] = command.create_models
     app['commands']['shell'] = command.shell

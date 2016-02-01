@@ -49,6 +49,7 @@ _api_schema = {
             },
             'uniqueItems': True,
         },
+        'advertise': {'type': 'boolean', 'default': True},
         'available':  {'type': 'boolean', 'default': True},
         'paths': {
             'type': 'array',
