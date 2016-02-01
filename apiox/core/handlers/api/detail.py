@@ -13,7 +13,7 @@ class APIDetailHandler(APIBaseHandler):
     def get(self, request):
         api = self.get_api(request)
         return JSONResponse(body=api.to_json(request.app,
-                                             may_administrate=api.may_administrate(getattr(request, 'token', None)))
+                                             may_administrate=api.may_administrate(getattr(request, 'token', None))))
 
     @asyncio.coroutine
     def put(self, request):
