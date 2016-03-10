@@ -27,12 +27,16 @@ class ReverseProxyHandler(BaseHandler):
     discard_response_headers = {'Transfer-Encoding',
                                 'Content-Encoding',
                                 'Server',
-                                'Set-Cookie'}
+                                'Set-Cookie',
+                                'WWW-Authenticate'}
 
-    def __init__(self, app, target):
+    def __init__(self, app, target, session=None):
         self.target = target
-        self.session = aiohttp_negotiate.NegotiateClientSession()
+        self.session = session or aiohttp_negotiate.NegotiateClientSession()
         app.register_on_finish(self.close_session)
+
+    def get_target_url(self, request):
+        return urljoin(self.target, request.match_info['path'])
 
     def close_session(self, app):
         self.session.close()
@@ -42,14 +46,15 @@ class ReverseProxyHandler(BaseHandler):
         headers = request.headers.copy()
         for header in self.discard_request_headers:
             headers.pop(header.upper(), None)
+        headers['X-Request-ID'] = request.context['tags']['request_id']
         
         if getattr(request, 'token', None):
             headers['X-ApiOx-Client'] = request.token.client_id
-            headers['X-ApiOx-Scopes'] = ' '.join(request.token.scopes)
+            headers['X-ApiOx-Scopes'] = ' '.join(scope.id for scope in request.token.scopes)
             headers['X-ApiOx-Account'] = request.token.account_id
-            headers['X-ApiOx-Account-Type'] = request.token.type
-            if request.token.user and request.token.type != 'project':
-                headers['X-ApiOx-User'] = str(request.token.user)
+            headers['X-ApiOx-Account-Type'] = request.token.account.type.value
+            if request.token.user_id and request.token.account.type.value != 'project':
+                headers['X-ApiOx-User'] = str(request.token.user_id)
 
         peername = request.transport.get_extra_info('peername')
         if peername:
@@ -63,7 +68,7 @@ class ReverseProxyHandler(BaseHandler):
             upstream_response = yield from self.session.request(method=request.method,
                                                                 params=request.GET,
                                                                 allow_redirects=False,
-                                                                url=urljoin(self.target, request.match_info['path']),
+                                                                url=self.get_target_url(request),
                                                                 data=content,
                                                                 headers=headers)
         except aiohttp.errors.ClientOSError as e:

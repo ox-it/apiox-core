@@ -1,9 +1,8 @@
-from sqlalchemy import MetaData
+from sqlalchemy.ext.declarative import declarative_base
 
-metadata = MetaData()
+Base = declarative_base()
 
-from .orm import Model
-
+from .api import *
 from .authorization_code import *
 from .principal import *
 from .scope_grant import *

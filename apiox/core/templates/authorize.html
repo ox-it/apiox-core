@@ -14,7 +14,7 @@
 <p>&hellip; would like to act on your behalf{% if account.type.value != "user" %} <strong>in your role as {{ account.type.label }}</strong>{% endif %} with the following permissions:</p>
 
 <ul class="authorize-scopes">
-{% for scope in scopes.values() %}
+{% for scope in scopes %}
 <li class="authorize-scope-detail">
   <h2>{{ scope.title }}</h2>
   <p>{{ scope.description }}</p>
@@ -27,7 +27,7 @@
 <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 {% if state is not none %}<input type="hidden" name="state" value="{{ state }}">{% endif %}
-{% if scopes is not none %}<input type="hidden" name="scope" value="{{ scopes.keys()|join(" ") }}">{% endif %}
+{% if scopes is not none %}<input type="hidden" name="scope" value="{% for scope in scopes %}{{ scope.id }} {% endfor %}">{% endif %}
 <input type="submit" name="approve" value="Approve">
 <input type="submit" name="reject" value="Reject">
 </form>

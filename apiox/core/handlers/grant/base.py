@@ -1,6 +1,7 @@
 import asyncio
 
 from aiohttp.web_exceptions import HTTPForbidden, HTTPUnauthorized
+from sqlalchemy.orm.exc import NoResultFound
 
 from ..base import BaseHandler
 from ... import db
@@ -20,17 +21,20 @@ class BaseGrantHandler(BaseHandler):
                     client_id, client_secret = request.POST['client_id'], request.POST['client_secret']
                 except KeyError:
                     raise e
-            client = yield from db.Principal.get(request.app, id=client_id)
-            if not client or not client.is_secret_valid(client_secret):
+            try:
+                client = request.session.query(db.Principal).filter_by(id=client_id).one()
+                if not client.is_secret_valid(request.app, client_secret):
+                    raise NoResultFound
+            except NoResultFound:
                 self.oauth2_exception(HTTPUnauthorized, request,
                                       {'error': 'invalid_client'})
-            request.token = yield from client.get_token_as_self()
-        if not (yield from request.token.client).allowed_oauth2_grant_types:
+            request.token = client.get_token_as_self(request.session)
+        if not request.token.client.allowed_oauth2_grant_types:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'unauthorized_client',
                                    'error_description': "Your client isn't registered as an OAuth2 client."})
 
-        if grant_type and grant_type not in (yield from request.token.client).allowed_oauth2_grant_types:
+        if grant_type and grant_type not in request.token.client.allowed_oauth2_grant_types:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'unauthorized_client',
                                      'error_description': 'The authenticated client is not '

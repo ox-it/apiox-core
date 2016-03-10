@@ -7,7 +7,9 @@ from xml.sax.saxutils import escape
 from aiohttp_jinja2 import render_template, render_string, APP_KEY
 
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPFound, HTTPForbidden
+from sqlalchemy.orm.exc import NoResultFound
 
+from apiox.core.db import Scope
 from .. import db
 from ..token import generate_token, hash_token, TOKEN_LIFETIME
 from .base import BaseHandler
@@ -21,7 +23,7 @@ class AuthorizeHandler(BaseHandler):
         if not request.token.user_id:
             self.error_response(HTTPForbidden, request,
                                 "There is no user associated with the account you logged in with.")
-        if '/oauth2/user' not in request.token.scopes:
+        if not any(scope.id == '/oauth2/user' for scope in request.token.scopes):
             self.error_response(HTTPForbidden, request,
                                 "Your credentials don't have authority to perform an authorization. You're either using a non-personal SSO account, or have authenticated with an OAuth2 token without the necessary scope.")
 
@@ -29,8 +31,9 @@ class AuthorizeHandler(BaseHandler):
             self.error_response(HTTPBadRequest, request,
                                 "No <tt>client_id</tt> parameter provided.")
 
-        client = yield from db.Principal.get(request.app, id=data['client_id'])
-        if not client:
+        try:
+            client = request.session.query(db.Principal).filter_by(id=data['client_id']).one()
+        except NoResultFound:
             self.error_response(HTTPBadRequest, request,
                                 "Couldn't find client")
         
@@ -48,24 +51,26 @@ class AuthorizeHandler(BaseHandler):
             self.error_response(HTTPBadRequest, request,
                                 'The <tt>redirect_uri</tt> parameter was incorrect.')
         
-        scopes = data.get('scope', '').split()
-        try:
-            scopes = collections.OrderedDict((s, request.app['scopes'][s]) for s in scopes)
-        except KeyError as e:
+        scope_ids = data.get('scope', '').split()
+        if scope_ids:
+            scopes = set(request.session.query(Scope).filter(Scope.id.in_(scope_ids)).all())
+        else:
+            scopes = set()
+        if len(scopes) != len(scope_ids):
             self.error_response(HTTPBadRequest, request,
                                 'Invalid scope: <tt>{}</tt>'.format(escape(e.args[0])))
-        permissible_scopes = yield from client.get_permissible_scopes_for_user(request.token.user_id,
+        permissible_scopes = yield from client.get_permissible_scopes_for_user(request.app,
+                                                                               request.session,
+                                                                               request.token.user_id,
                                                                                only_implicit=False)
-        disallowed_scopes = [scope for scope in scopes.values()
-                             if scope.name not in permissible_scopes
-                                and not scope.requestable_by_all_clients]
+        disallowed_scopes = scopes - permissible_scopes
         if disallowed_scopes:
             self.error_response(HTTPBadRequest, request,
                                 "The client requested scopes it wasn't entitled to ({}).".format(
                                     ', '.join('<tt>{}</tt>'.format(escape(scope.name)) for scope in disallowed_scopes)))
-        
+
         return {'client': client,
-                'account': (yield from request.token.account),
+                'account': request.token.account,
                 'authorize_url': request.app.router['oauth2:authorize'].url(),
                 'redirect_uri': redirect_uri,
                 'state': data.get('state'),
@@ -97,16 +102,15 @@ class AuthorizeHandler(BaseHandler):
 
         if 'approve' in request.POST:
             code = generate_token()
-            authorization_code = db.AuthorizationCode(request.app,
-                                                      code_hash=hash_token(request.app, code),
-                                                      account_id=request.token.account_id,
-                                                      client_id=context['client'].id,
+            authorization_code = db.AuthorizationCode(code_hash=hash_token(request.app, code),
+                                                      account=request.token.account,
+                                                      client=context['client'],
                                                       user_id=request.token.user_id,
-                                                      scopes=list(context['scopes'].keys()),
+                                                      scopes=list(context['scopes']),
                                                       redirect_uri=context['redirect_uri'],
                                                       granted_at=datetime.datetime.utcnow(),
                                                       expire_at=datetime.datetime.utcnow() + datetime.timedelta(0, 60))
-            yield from authorization_code.insert()
+            request.session.add(authorization_code)
 
             params = {'code': code}
             if context['state']:
@@ -116,7 +120,7 @@ class AuthorizeHandler(BaseHandler):
         else:
             raise HTTPBadRequest
         redirect_uri = context['redirect_uri'] + '?' + urllib.parse.urlencode(params)
-        raise HTTPFound(redirect_uri)
+        return HTTPFound(redirect_uri)
         
 
     def error_response(self, exception_cls, request, error):

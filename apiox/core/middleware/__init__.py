@@ -12,3 +12,5 @@ from .request_logging import request_logging_middleware
 
 # Cross-Origin Resource Sharing
 from .cors import add_cors_headers
+
+from .db_session import db_session

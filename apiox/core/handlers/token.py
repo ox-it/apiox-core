@@ -7,6 +7,7 @@ from .base import BaseHandler
 from .. import db
 from ..response import JSONResponse
 
+
 class TokenRequestHandler(BaseHandler):
     @asyncio.coroutine
     def post(self, request):

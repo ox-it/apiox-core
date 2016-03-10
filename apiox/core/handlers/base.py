@@ -18,7 +18,10 @@ class BaseHandler(object):
     http_methods = {'get', 'post', 'put', 'delete', 'patch', 'options', 'head'}
 
     @asyncio.coroutine
-    def require_authentication(self, request, *, with_user=False, scopes=()):
+    def require_authentication(self, request, *,
+                               require_user=False,
+                               require_role=None,
+                               require_scopes=None):
         if not hasattr(request, 'token'):
             response = HTTPUnauthorized()
             for scheme in sorted(request.app.authentication_schemes,
@@ -26,15 +29,21 @@ class BaseHandler(object):
                 response.headers.add('WWW-Authenticate', scheme)
             raise response
 
-        if with_user and not request.token.user_id:
+        if require_user and not request.token.user_id:
             raise JSONResponse(base=HTTPForbidden,
                                body={'error': 'This requires a user.'})
-        
-        missing_scopes = set(scopes) - set(request.token['scopes'])
-        if missing_scopes:
+
+        if require_role and request.token.role not in require_role:
             raise JSONResponse(base=HTTPForbidden,
-                               body={'error': 'Requires missing scopes.',
-                                     'scopes': sorted(missing_scopes)})
+                               body={'error': 'Wrong principal role. Should be one of {}, not {}'.format(
+                                         require_role, request.token.role)})
+
+        if require_scopes:
+            missing_scopes = set(require_scopes) - set(scope.id for scope in request.token.scopes)
+            if missing_scopes:
+                raise JSONResponse(base=HTTPForbidden,
+                                   body={'error': 'Requires missing scopes.',
+                                         'scopes': sorted(missing_scopes)})
 
     @asyncio.coroutine
     def validated_json(self, request, app_name, schema_name):
@@ -42,7 +51,7 @@ class BaseHandler(object):
             body = yield from request.json()
         except ValueError:
             raise HTTPBadRequest
-        schema = request.app['definitions'][app_name]['schemas'][schema_name]
+        schema = request.app['schemas'][app_name][schema_name]
         try:
             jsonschema.validate(body, schema)
         except jsonschema.ValidationError as e:
