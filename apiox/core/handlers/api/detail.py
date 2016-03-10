@@ -11,13 +11,13 @@ from apiox.core.response import JSONResponse
 class APIDetailHandler(APIBaseHandler):
     @asyncio.coroutine
     def get(self, request):
-        api = self.get_api(request)
+        api = yield from self.get_api(request)
         return JSONResponse(body=api.to_json(request.app,
                                              may_administrate=api.may_administrate(getattr(request, 'token', None))))
 
     @asyncio.coroutine
     def put(self, request):
-        api = self.get_api(request, modifying=True)
+        api = yield from self.get_api(request, modifying=True)
         if not api:
             api = API(id=request.match_info['id'])
         definition = yield from self.validated_json(request, None, 'api')

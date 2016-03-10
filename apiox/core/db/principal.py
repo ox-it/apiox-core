@@ -84,7 +84,7 @@ class Principal(Base):
 
         granted_scope_ids = set()
         for scope_grant in session.query(ScopeGrant).filter_by(client_id=self.id).all():
-            granted_scope_ids.update(scope_grant.scopes)
+            granted_scope_ids.update(s.id for s in scope_grant.scopes)
         if granted_scope_ids:
             scopes.update(session.query(Scope).filter(Scope.id.in_(granted_scope_ids)).all())
 
@@ -189,8 +189,17 @@ class Principal(Base):
             return False
         return True
 
+    def principal_to_json(self, app, verbose=False):
+        body = {
+            'id': self.id,
+            'name': self.name,
+            '_links': {},
+        }
+        if self.user_id:
+            body['_links']['user'] = app.router['person:detail'].url(parts={})
+        return body
 
-    def to_json(self, app, may_administrate=False):
+    def client_to_json(self, app, may_administrate=False):
         body = {
             'id': self.id,
             'name': self.name,
@@ -206,8 +215,8 @@ class Principal(Base):
             body.update({
                 'oauth2GrantTypes': self.allowed_oauth2_grant_types,
                 'redirectURIs': self.redirect_uris,
-                '_embedded': {
-                    'administrator': [a.to_json(app) for a in self.administrators]
+                '_links': {
+                    'administrator': [a.principal_to_json(app, verbose=False) for a in self.administrators]
                 },
             })
             body['_links']['api:secret'] = {

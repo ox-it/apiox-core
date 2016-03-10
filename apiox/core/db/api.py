@@ -86,3 +86,12 @@ class API(Base):
             paths=data.get('paths') or [],
             scopes=[Scope.from_json(data['id'], scope) for scope in data.get('scopes', ())]
         )
+
+    def may_administrate(self, token):
+        if not token:
+            return False
+        if token.account not in self.administrators:
+            return False
+        if not any(s.id == '/api/manage' for s in token.scopes):
+            return False
+        return True
