@@ -101,16 +101,14 @@ class Principal(Base):
         if self.is_person and user_id == self.user_id:
             return set(session.query(Scope).filter_by(granted_to_user=True).all())
         results = yield from self.get_permissible_scopes_for_users(app, session, [user_id],
+                                                                   token=token,
                                                                    only_implicit=only_implicit)
         scopes = results.popitem()[1]
-
-        if token is not None:
-            scopes.update(token.scopes)
 
         return scopes
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_users(self, app, session, user_ids, *, only_implicit=True):
+    def get_permissible_scopes_for_users(self, app, session, user_ids, *, token=None, only_implicit=True):
         scope_grants = list(self.scope_grants)
         if only_implicit is False:
             scope_grants.extend(self.scope_request_grants)
@@ -129,8 +127,10 @@ class Principal(Base):
         for subject, in_groups in memberships.items():
             in_groups = set(g.uuid for g in in_groups)
             scopes = universal_scopes.copy()
-            if self.is_person and subject.id == self.user_id:
+            if self.is_person and int(subject.id) == self.user_id:
                 scopes.update(session.query(Scope).filter_by(granted_to_user=True).all())
+            if token is not None and token.user_id == int(subject.id):
+                scopes.update(token.scopes)
             for scope_grant in scope_grants:
                 if scope_grant.target_groups is not None and \
                    in_groups & set(scope_grant.target_groups):
