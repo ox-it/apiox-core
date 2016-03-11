@@ -64,12 +64,12 @@ class Principal(Base):
     #account_token = relationship('Token', 'Token.account_id', backref='account')
     #client_token = relationship('Token', 'Token.client_id', backref='client')
     administrator_of = relationship('Principal', secondary=principal_administrator,
-                                  primaryjoin=(id==principal_administrator.c.principal_id),
-                                  secondaryjoin=(id==principal_administrator.c.administrator_id))
-
-    administrators = relationship('Principal', secondary=principal_administrator,
                                     primaryjoin=(id==principal_administrator.c.administrator_id),
                                     secondaryjoin=(id==principal_administrator.c.principal_id))
+
+    administrators = relationship('Principal', secondary=principal_administrator,
+                                  primaryjoin=(id==principal_administrator.c.principal_id),
+                                  secondaryjoin=(id==principal_administrator.c.administrator_id))
 
     def is_secret_valid(self, app, secret):
         if not self.secret_hash:
