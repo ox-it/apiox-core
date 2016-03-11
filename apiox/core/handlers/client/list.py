@@ -16,7 +16,7 @@ class ClientListHandler(BaseClientHandler):
         yield from self.require_authentication(request, require_scopes={'/oauth2/manage-client'})
         body = {
             '_embedded': {
-                'item': [p.to_json(request.app, True) for p in request.token.account.administrator_of],
+                'item': [p.client_to_json(request.app, True) for p in request.token.account.administrator_of],
             },
         },
         return JSONResponse(body=body)

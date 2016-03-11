@@ -97,18 +97,24 @@ class Principal(Base):
                               scopes=list(scopes))
 
     @asyncio.coroutine
-    def get_permissible_scopes_for_user(self, app, session, user_id, *, only_implicit=True):
+    def get_permissible_scopes_for_user(self, app, session, user_id, *, token=None, only_implicit=True):
         if self.is_person and user_id == self.user_id:
             return set(session.query(Scope).filter_by(granted_to_user=True).all())
         results = yield from self.get_permissible_scopes_for_users(app, session, [user_id],
                                                                    only_implicit=only_implicit)
-        return results.popitem()[1]
+        scopes = results.popitem()[1]
+
+        if token is not None:
+            scopes.update(token.scopes)
+
+        return scopes
 
     @asyncio.coroutine
     def get_permissible_scopes_for_users(self, app, session, user_ids, *, only_implicit=True):
         scope_grants = list(self.scope_grants)
         if only_implicit is False:
             scope_grants.extend(self.scope_request_grants)
+
         target_groups = set()
         universal_scopes = set()
         for scope_grant in scope_grants:
@@ -196,7 +202,7 @@ class Principal(Base):
             '_links': {},
         }
         if self.user_id:
-            body['_links']['user'] = app.router['person:detail'].url(parts={})
+            body['_links']['user'] = {'href': app.router['person:detail'].url(parts={'id': self.user_id})}
         return body
 
     def client_to_json(self, app, may_administrate=False):
@@ -216,7 +222,8 @@ class Principal(Base):
                 'oauth2GrantTypes': self.allowed_oauth2_grant_types,
                 'redirectURIs': self.redirect_uris,
                 '_links': {
-                    'administrator': [a.principal_to_json(app, verbose=False) for a in self.administrators]
+                    'administrator': [a.principal_to_json(app, verbose=False) for a in self.administrators],
+                    'self': {'href': app.router['client:detail'].url(parts={'id': self.id})},
                 },
             })
             body['_links']['api:secret'] = {

@@ -27,7 +27,7 @@ class ClientDetailHandler(BaseClientHandler):
         client = yield from self.get_client(request)
         may_administrate = client.may_administrate(getattr(request, 'token', None))
         print(may_administrate)
-        body = client.to_json(request.app, may_administrate=may_administrate)
+        body = client.client_to_json(request.app, may_administrate=may_administrate)
 
         return JSONResponse(
             body=body,
