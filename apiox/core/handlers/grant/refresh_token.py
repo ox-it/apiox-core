@@ -1,12 +1,15 @@
 import asyncio
 import datetime
 
+from sqlalchemy.orm.exc import NoResultFound
+
 from ... import db
 from ...response import JSONResponse
 
 from .base import BaseGrantHandler
 from aiohttp.web_exceptions import HTTPBadRequest, HTTPForbidden
 from apiox.core.token import hash_token
+
 
 class RefreshTokenGrantHandler(BaseGrantHandler):
     @asyncio.coroutine
@@ -21,13 +24,14 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                    'error_description': "Missing `refresh_token` parameter"})
         
         refresh_token_hash = hash_token(request.app, refresh_token)
-        token = yield from db.Token.get(request.app, refresh_token_hash=refresh_token_hash)
-        if not token:
+        try:
+            token = request.session.query(db.Token).filter(refresh_token_hash=refresh_token_hash).one()
+        except NoResultFound:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
                                    'error_description': 'Unrecognised refresh token'})
 
-        if token['expire_at'] and token['expire_at'] < datetime.datetime.utcnow():
+        if token.expire_at and token.expire_at < datetime.datetime.utcnow():
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
                                    'error_description': 'The token has expired'})
