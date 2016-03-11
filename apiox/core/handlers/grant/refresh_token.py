@@ -37,7 +37,9 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                                    'error_description': 'The token has expired'})
 
         access_token, refresh_token = \
-            token.refresh(scopes=request.POST.get('scope', '').split())
+            token.refresh(request.app,
+                          request.session,
+                          scopes=request.POST.get('scope', '').split())
         request.session.add(token)
         return JSONResponse(body=token.as_json(access_token=access_token,
                                                refresh_token=refresh_token))
