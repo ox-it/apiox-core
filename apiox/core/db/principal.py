@@ -100,8 +100,8 @@ class Principal(Base):
     def get_permissible_scopes_for_user(self, app, session, user_id, *, only_implicit=True):
         if self.is_person and user_id == self.user_id:
             return set(session.query(Scope).filter_by(granted_to_user=True).all())
-        results = self.get_permissible_scopes_for_users(app, session, [user_id],
-                                                        only_implicit=only_implicit)
+        results = yield from self.get_permissible_scopes_for_users(app, session, [user_id],
+                                                                   only_implicit=only_implicit)
         return results.popitem()[1]
 
     @asyncio.coroutine

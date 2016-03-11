@@ -25,7 +25,7 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
         
         refresh_token_hash = hash_token(request.app, refresh_token)
         try:
-            token = request.session.query(db.Token).filter(refresh_token_hash=refresh_token_hash).one()
+            token = request.session.query(db.Token).filter_by(refresh_token_hash=refresh_token_hash).one()
         except NoResultFound:
             self.oauth2_exception(HTTPForbidden, request,
                                   {'error': 'access_denied',
