@@ -1,6 +1,6 @@
 import asyncio
 from sqlalchemy import Table, Column, String, Boolean, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 from sqlalchemy.orm import relationship
 
 from apiox.core.token import TOKEN_LENGTH
@@ -34,7 +34,7 @@ class API(Base):
     advertise = Column(Boolean, default=True)
     available = Column(Boolean, default=True)
 
-    paths = Column(JSONB, default=[])
+    paths = Column(JSON, default=[])
 
     scopes = relationship('Scope', order_by='Scope.id', backref='api',
                           cascade="all, delete, delete-orphan, save-update")
