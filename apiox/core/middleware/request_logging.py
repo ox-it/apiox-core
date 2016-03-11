@@ -14,7 +14,7 @@ def request_logging_middleware(app, handler):
     @asyncio.coroutine
     def middleware(request):
         start_dt = datetime.datetime.now(tz=datetime.timezone.utc)
-        server_name, server_port = request.transport.get_extra_info('sockname')
+        server_name, server_port, *_ = request.transport.get_extra_info('sockname')
         headers = request.headers.copy()
         if headers.get('Authorization'):
             headers['Authorization'] = headers['Authorization'].split()[0] + ' [redacted]'
