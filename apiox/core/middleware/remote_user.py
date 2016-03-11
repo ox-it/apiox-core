@@ -13,7 +13,7 @@ def remote_user_middleware_factory(use_header=False, use_param=False,
             remote_addr = ipaddress.ip_address(request.transport.get_extra_info('peername')[0])
             if accept_from(remote_addr):
                 if use_header and 'X-Remote-User' in request.headers:
-                    principal = yield from Principal.lookup(app, request.headers['X-Remote-User'])
+                    principal = yield from Principal.lookup(app, request.session, name=request.headers['X-Remote-User'])
                     if principal:
                         request.token = yield from principal.get_token_as_self()
                 if use_param and 'remote_user' in request.GET:
