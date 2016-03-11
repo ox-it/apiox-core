@@ -41,5 +41,5 @@ class RefreshTokenGrantHandler(BaseGrantHandler):
                           request.session,
                           scopes=request.POST.get('scope', '').split())
         request.session.add(token)
-        return JSONResponse(body=token.as_json(access_token=access_token,
+        return JSONResponse(body=token.to_json(access_token=access_token,
                                                refresh_token=refresh_token))
