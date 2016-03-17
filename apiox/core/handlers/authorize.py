@@ -57,8 +57,10 @@ class AuthorizeHandler(BaseHandler):
         else:
             scopes = set()
         if len(scopes) != len(scope_ids):
+            invalid_scopes = set(scope_ids) - set(scope.id for scope in scopes)
             self.error_response(HTTPBadRequest, request,
-                                'Invalid scope: <tt>{}</tt>'.format(escape(e.args[0])))
+                                'Invalid scopes: {}'.format(
+                                    ', '.join('<tt>{}</tt>'.format(escape(s)) for s in invalid_scopes)))
         permissible_scopes = yield from client.get_permissible_scopes_for_user(request.app,
                                                                                request.session,
                                                                                request.token.user_id,
@@ -67,7 +69,7 @@ class AuthorizeHandler(BaseHandler):
         if disallowed_scopes:
             self.error_response(HTTPBadRequest, request,
                                 "The client requested scopes it wasn't entitled to ({}).".format(
-                                    ', '.join('<tt>{}</tt>'.format(escape(scope.name)) for scope in disallowed_scopes)))
+                                    ', '.join('<tt>{}</tt>'.format(escape(scope.id)) for scope in disallowed_scopes)))
 
         return {'client': client,
                 'account': request.token.account,
