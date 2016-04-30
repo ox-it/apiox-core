@@ -12,10 +12,9 @@ def run_server(app):
 
     loop = asyncio.get_event_loop()
 
-    logger.info("Server starting.")
-    f = loop.create_server(app.make_handler(),
-                           os.environ['LISTEN_HOST'],
-                           int(os.environ.get('LISTEN_PORT', 8000)))
+    listen_host, listen_port = os.environ['LISTEN_HOST'], int(os.environ.get('LISTEN_PORT', 8000))
+    logger.info("Server starting on %s:%d", listen_host, listen_port)
+    f = loop.create_server(app.make_handler(), listen_host, listen_port)
 
     srv = loop.run_until_complete(f)
     try:
