@@ -21,7 +21,11 @@ class BaseHandler(object):
     def require_authentication(self, request, *,
                                require_user=False,
                                require_role=None,
-                               require_scopes=None):
+                               require_scopes=None,
+                               ignore_options=True):
+        if ignore_options and request.method.upper() == 'OPTIONS':
+            return
+
         if not hasattr(request, 'token'):
             response = HTTPUnauthorized()
             for scheme in sorted(request.app.authentication_schemes,
