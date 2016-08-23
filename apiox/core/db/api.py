@@ -43,6 +43,9 @@ class API(Base):
                                     primaryjoin=(id==api_administrator.c.administrator_id),
                                     secondaryjoin=(id==api_administrator.c.api_id))
 
+    def __str__(self):
+        return "{} ({})".format(self.id, self.title)
+
     def to_json(self, app, may_administrate=False):
         data = {
             'id': self.id,

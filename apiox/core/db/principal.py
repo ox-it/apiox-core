@@ -1,21 +1,19 @@
 import asyncio
 import enum
-import re
 
+import re
 from aiogrouper import Subject, Group
 from sqlalchemy import Table, Column, Integer, String, ForeignKey
+from sqlalchemy.dialects.postgresql.base import ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.sql import select
 from sqlalchemy_utils.types.choice import ChoiceType
 
 from apiox.core.db.scope import Scope
 from . import Base
+from .scope_grant import ScopeGrant
 from .. import ldap
 from ..token import TOKEN_LENGTH, TOKEN_HASH_LENGTH, hash_token, generate_token
-from sqlalchemy.dialects.postgresql.base import ARRAY
-
-from .scope_grant import ScopeGrant
 
 
 class PrincipalType(enum.Enum):
@@ -48,10 +46,11 @@ principal_administrator = Table('principal_administrator', Base.metadata,
     Column('administrator_id', String(TOKEN_LENGTH), ForeignKey('principal.id'), primary_key=True),
 )
 
+
 class Principal(Base):
     __tablename__ = 'principal'
 
-    id = Column(String(TOKEN_LENGTH), primary_key=True)
+    id = Column(String(TOKEN_LENGTH), primary_key=True, default=generate_token)
     secret_hash = Column(String(TOKEN_HASH_LENGTH), nullable=True)
     name = Column(String(), unique=True, index=True)
     user_id = Column(Integer, nullable=True)
@@ -71,13 +70,15 @@ class Principal(Base):
                                   primaryjoin=(id==principal_administrator.c.principal_id),
                                   secondaryjoin=(id==principal_administrator.c.administrator_id))
 
+    def __str__(self):
+        return "{} ({})".format(self.id, self.name)
+
     def is_secret_valid(self, app, secret):
         if not self.secret_hash:
             return False
         return hash_token(app, secret) == self.secret_hash
 
     def get_token_as_self(self, session):
-        from .token import Token
         scopes = set()
         if self.is_person:
             scopes.update(session.query(Scope).filter_by(granted_to_user=True).all())

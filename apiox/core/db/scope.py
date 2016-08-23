@@ -22,6 +22,9 @@ class Scope(Base):
     aliases = relationship('ScopeAlias', order_by='ScopeAlias.id', backref='scope',
                            cascade="all, delete, delete-orphan")
 
+    def __str__(self):
+        return '{} ({})'.format(self.id, self.title)
+
     def to_json(self):
         return {
             'id': self.id,
