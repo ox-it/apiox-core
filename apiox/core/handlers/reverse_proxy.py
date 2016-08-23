@@ -4,7 +4,6 @@ import http.client
 import aiohttp
 import aiohttp.streams
 import aiohttp.web
-import aiohttp.multidict
 import aiohttp_negotiate
 
 from .base import BaseHandler
