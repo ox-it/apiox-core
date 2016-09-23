@@ -22,8 +22,8 @@
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 {% if state is not none %}<input type="hidden" name="state" value="{{ state }}">{% endif %}
 {% if scopes is not none %}<input type="hidden" name="scope" value="{% for scope in scopes %}{{ scope.id }} {% endfor %}">{% endif %}
-<input type="submit" name="approve" value="Approve">
-<input type="submit" name="reject" value="Reject">
+<input type="submit" class="btn-block" name="approve" value="Approve">
+<input type="submit" class="btn-block" name="reject" value="Reject">
 </form>
 </div>
 
