@@ -16,10 +16,7 @@ def request_logging_middleware(app, handler):
     def middleware(request):
         start_dt = datetime.datetime.now(tz=datetime.timezone.utc)
         server_name, server_port, *_ = request.transport.get_extra_info('sockname')
-        assert isinstance(request.headers, MultiDict)
-        # Workaround, pending https://github.com/aio-libs/multidict/issues/11
-        # headers = request.headers.copy()
-        headers = CIMultiDict((str(k), v) for k, v in request.headers.items())
+        headers = request.headers.copy()
         if headers.get('Authorization'):
             headers['Authorization'] = headers['Authorization'].split()[0] + ' [redacted]'
         if headers.get('Cookie'):
