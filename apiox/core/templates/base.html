@@ -2,17 +2,21 @@
 <html>
   <head>
     <title>University of Oxford</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Sets initial viewport load and disables zooming  -->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
     <link rel="stylesheet" type="text/css" href="/static/base.css">
+    <link rel="stylesheet" type="text/css" href="/static/auth.css">
   </head>
   <body>{% block body %}
-    <header>
-      <span>University of Oxford</span>
-      <span>api.ox.ac.uk</span>
-    </header>
-    <div class="container">
-  
-    <div class="content">{% block content %}{% endblock %}</div>
-  
+      <div class="card initial">
+          <img src="oxlogo.png" class="oxlogo">
+          <p class="api">api.ox.ac.uk</p>
+        <div class="container">
+      
+        <div class="content">{% block content %}{% endblock %}</div>
+      
+        </div>
     </div>
   {% endblock %}</body>
 </html>

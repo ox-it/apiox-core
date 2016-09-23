@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Authorise API access on your behalf</h1>
+<h3>Authorise API access on your behalf</h3>
 <p class="authorize-salutation">Hi, {{ person.displayName.0 }}!</p>
 
 <p>The following application:</p>
@@ -11,17 +11,18 @@
   <p>{{ client.description }}</p>
 </div>
 
-<p>&hellip; would like to act on your behalf{% if account.type.value != "user" %} <strong>in your role as {{ account.type.label }}</strong>{% endif %} with the following permissions:</p>
+<p class="list"><b>&hellip;</b></p>
+<p>would like to act on your behalf{% if account.type.value != "user" %} <strong>in your role as {{ account.type.label }}</strong>{% endif %} with the following permissions:</p>
 
 <ul class="authorize-scopes">
 {% for scope in scopes %}
 <li class="authorize-scope-detail">
-  <h2>{{ scope.title }}</h2>
-  <p>{{ scope.description }}</p>
+  <p><b>{{ scope.title }}</b>{{ scope.description }}</p>
 </li>
 {% endfor %}
 </ul>
 
+<div class="buttons">
 <form method="post" action="{{ authorize_url }}">
 <input type="hidden" name="client_id" value="{{ client.id }}">
 <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
@@ -31,5 +32,6 @@
 <input type="submit" name="approve" value="Approve">
 <input type="submit" name="reject" value="Reject">
 </form>
+</div>
 
 {% endblock %}
