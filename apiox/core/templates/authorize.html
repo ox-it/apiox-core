@@ -2,22 +2,15 @@
 
 {% block content %}
 <h3>Authorise API access on your behalf</h3>
-<p class="authorize-salutation">Hi, {{ person.displayName.0 }}!</p>
+<p class="authorize-salutation">Hi, {{ person.displayName.0 }}, the following application:</p>
 
-<p>The following application:</p>
-
-<div class="authorize-client-detail">
-  <h2>{{ client.title }}</h2>
-  <p>{{ client.description }}</p>
-</div>
-
-<p class="list"><b>&hellip;</b></p>
+<p class="list"><b>{{ client.title }}: </b>{{ client.description }}</p>
 <p>would like to act on your behalf{% if account.type.value != "user" %} <strong>in your role as {{ account.type.label }}</strong>{% endif %} with the following permissions:</p>
 
 <ul class="authorize-scopes">
 {% for scope in scopes %}
 <li class="authorize-scope-detail">
-  <p><b>{{ scope.title }}</b>{{ scope.description }}</p>
+  <p><b>{{ scope.title }}: </b>{{ scope.description }}</p>
 </li>
 {% endfor %}
 </ul>

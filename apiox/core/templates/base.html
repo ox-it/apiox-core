@@ -10,13 +10,9 @@
   </head>
   <body>{% block body %}
       <div class="card initial">
-          <img src="oxlogo.png" class="oxlogo">
+          <img src="/static/oxlogo.png" class="oxlogo">
           <p class="api">api.ox.ac.uk</p>
-        <div class="container">
-      
-        <div class="content">{% block content %}{% endblock %}</div>
-      
-        </div>
+        {% block content %}{% endblock %}
     </div>
   {% endblock %}</body>
 </html>
