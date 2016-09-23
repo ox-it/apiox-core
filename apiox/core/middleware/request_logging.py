@@ -3,6 +3,7 @@ import datetime
 import logging
 
 from aiohttp.web_exceptions import HTTPException
+from multidict._multidict import CIMultiDict, MultiDict
 
 from apiox.core.token import generate_token
 
