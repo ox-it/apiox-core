@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import gssapi
+import socket
 
 from aiohttp.web_exceptions import HTTPUnauthorized
 
@@ -17,10 +18,10 @@ def negotiate_auth_middleware(app, handler):
         # Don't do any authentication on OPTIONS requests
         if request.method.upper() == 'OPTIONS':
             return (yield from handler(request))
-
         authorization = request.headers.get('Authorization', '')
         if authorization.startswith('Negotiate '):
-            service_name = 'HTTP/{}'.format(request.headers.get('Host').split(':')[0])
+            host = socket.gethostbyaddr(request.transport.get_extra_info('socket').getsockname()[0])[0]
+            service_name = 'HTTP/{}'.format(host)
             service_name = gssapi.Name(service_name)
 
             # The browser is authenticating using GSSAPI, trim off 'Negotiate ' and decode:
