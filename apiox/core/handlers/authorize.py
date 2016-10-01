@@ -104,6 +104,11 @@ class AuthorizeHandler(BaseHandler):
 
         if 'approve' in request.POST:
             code = generate_token()
+            if context['client'].oauth2_token_lifetime:
+                token_expire_at = datetime.datetime.utcnow() + \
+                                  datetime.timedelta(0, context['client'].oauth2_token_lifetime)
+            else:
+                token_expire_at = None
             authorization_code = db.AuthorizationCode(code_hash=hash_token(request.app, code),
                                                       account=request.token.account,
                                                       client=context['client'],
@@ -111,7 +116,8 @@ class AuthorizeHandler(BaseHandler):
                                                       scopes=list(context['scopes']),
                                                       redirect_uri=context['redirect_uri'],
                                                       granted_at=datetime.datetime.utcnow(),
-                                                      expire_at=datetime.datetime.utcnow() + datetime.timedelta(0, 60))
+                                                      expire_at=datetime.datetime.utcnow() + datetime.timedelta(0, 60),
+                                                      token_expire_at=token_expire_at)
             request.session.add(authorization_code)
 
             params = {'code': code}

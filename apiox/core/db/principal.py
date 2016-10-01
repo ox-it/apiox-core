@@ -59,6 +59,7 @@ class Principal(Base):
     description = Column(String, nullable=True)
     redirect_uris = Column(ARRAY(String))
     allowed_oauth2_grant_types = Column(ARRAY(String))
+    oauth2_token_lifetime = Column(Integer, nullable=True)
 
     #account_token = relationship('Token', 'Token.account_id', backref='account')
     #client_token = relationship('Token', 'Token.client_id', backref='client')
